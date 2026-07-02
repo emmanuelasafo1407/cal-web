@@ -1,65 +1,147 @@
-import Image from "next/image";
+import Image from 'next/image';
+import Link from 'next/link';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="w-full bg-[#f8fafc]">
+      {/* Immersive Premium Hero Section with Storefront Evening View Background */}
+      <section 
+        className="relative min-h-[85vh] flex items-center bg-[#002147] bg-cover bg-center bg-no-repeat py-24 px-6 border-b-4 border-[#D4AF37]"
+        style={{ 
+          backgroundImage: `linear-gradient(to right, rgba(0, 33, 71, 0.96) 35%, rgba(0, 33, 71, 0.7) 100%), url('/bg-evening.jpeg')` 
+        }}
+      >
+        <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Left Hero Core Branding */}
+          <div className="lg:col-span-7 space-y-6 text-left">
+            <div className="inline-flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/40 px-4 py-1.5 text-xs uppercase tracking-widest text-[#D4AF37] font-black rounded-full">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              Live Core Operating Hub
+            </div>
+            <h1 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-tight leading-[1.05]">
+              YOUR <span className="text-gradient bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] bg-clip-text text-transparent">BANKING</span> & <br />
+              <span className="text-gradient bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] bg-clip-text text-transparent">DIGITAL SERVICES</span> <br />
+              NEAR YOU!
+            </h1>
+            <p className="text-slate-300 text-sm sm:text-base max-w-xl font-medium leading-relaxed">
+              Experience prompt agent banking hub operations, custom team jersey designs, premium visual graphics construction layouts, and high-tier electronic hardware accessibility metrics.
+            </p>
+            <div className="pt-4 flex flex-wrap gap-4">
+              <Link href="/services" className="bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] border border-[#D4AF37] hover:from-white hover:to-white text-[#002147] font-black px-8 py-4 rounded transition duration-200 uppercase text-xs tracking-wider shadow-xl">
+                Launch Service Terminal
+              </Link>
+              <Link href="/products" className="border-2 border-slate-400 hover:border-white text-white font-black px-8 py-4 rounded transition uppercase text-xs tracking-wider">
+                Explore Inventory
+              </Link>
+            </div>
+          </div>
+
+          {/* Right Hero Block: Floating Interactive Flyer Showcase with Premium Borders */}
+          <div className="lg:col-span-5 flex justify-center lg:justify-end">
+            <div className="bg-gradient-to-b from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-5 rounded-2xl shadow-2xl max-w-md w-full transform hover:scale-[1.02] transition duration-300">
+              <div className="relative aspect-[2/1] w-full overflow-hidden rounded-xl shadow-2xl border border-white/10">
+                <Image 
+                  src="/flyer.jpeg" 
+                  alt="Constant A. Liberty Ventures Flyer Reference"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+              <div className="mt-5 flex items-center justify-between text-white px-1">
+                <div>
+                  <h3 className="text-xs font-black tracking-widest uppercase text-[#D4AF37]">Official Venture Flyer</h3>
+                  <p className="text-[11px] text-slate-300 mt-0.5 font-medium">Off Likpe Road Bangalow – Hohoe</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-mono font-black text-[#D4AF37] bg-[#D4AF37]/10 px-3 py-1.5 rounded border border-[#D4AF37]/30 shadow-sm">
+                    0544208963
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Dynamic Operational Showcase Section */}
+      <section className="max-w-7xl mx-auto py-24 px-6">
+        <div className="text-center max-w-2xl mx-auto mb-20">
+          <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Immersive Operations Layout</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-[#002147] uppercase tracking-tight mt-1">Our Premium Shop Environment</h2>
+          <div className="h-1 w-16 bg-[#D4AF37] mx-auto mt-4"></div>
         </div>
-      </main>
+
+        {/* Premium Core Image Cards Grid Layout */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          {/* Card 1: Daytime Exterior Profile */}
+          <div className="bg-white rounded-xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg hover:border-[#D4AF37]/50 transition duration-300 group">
+            <div className="relative h-64 w-full overflow-hidden bg-slate-100">
+              <Image 
+                src="/shop-day.jpeg" 
+                alt="Storefront Daytime Profile" 
+                fill 
+                className="object-cover group-hover:scale-105 transition duration-500"
+              />
+            </div>
+            <div className="p-6">
+              <span className="text-xs font-black uppercase tracking-wider text-[#D4AF37]">Exterior Profile</span>
+              <h3 className="text-lg font-bold text-[#002147] mt-1">Modern Flagship Storefront</h3>
+              <p className="text-slate-600 text-sm mt-2 leading-relaxed font-medium">
+                Visit our premier brick-and-mortar hub fully customized to execute fast account processes and clean digital assets.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Interactive Counter Desks */}
+          <div className="bg-white rounded-xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg hover:border-[#D4AF37]/50 transition duration-300 group">
+            <div className="relative h-64 w-full overflow-hidden bg-slate-100">
+              <Image 
+                src="/shop-interior.jpeg" 
+                alt="Interior Service Desks" 
+                fill 
+                className="object-cover group-hover:scale-105 transition duration-500"
+              />
+            </div>
+            <div className="p-6">
+              <span className="text-xs font-black uppercase tracking-wider text-[#D4AF37]">Interior Hub</span>
+              <h3 className="text-lg font-bold text-[#002147] mt-1">Dedicated Customer Terminals</h3>
+              <p className="text-slate-600 text-sm mt-2 leading-relaxed font-medium">
+                Step inside our layout lounges custom-tailored for speedy financial wire handshakes and active hardware testing.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: Agency Banking Service Points */}
+          <div className="bg-white rounded-xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg hover:border-[#D4AF37]/50 transition duration-300 group">
+            <div className="relative h-64 w-full overflow-hidden bg-slate-100">
+              <Image 
+                src="/shop-agent.jpeg" 
+                alt="Agency Banking Counters" 
+                fill 
+                className="object-cover group-hover:scale-105 transition duration-500"
+              />
+            </div>
+            <div className="p-6">
+              <span className="text-xs font-black uppercase tracking-wider text-[#D4AF37]">Fidelity Agent</span>
+              <h3 className="text-lg font-bold text-[#002147] mt-1">Authorized Banking Operations</h3>
+              <p className="text-slate-600 text-sm mt-2 leading-relaxed font-medium">
+                Experience dynamic real-time balance checks, cash withdrawals, instant wallet mapping, and account registration.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Location Identification Footer Strip */}
+      <section className="bg-white border-y border-slate-200 py-12 px-6 text-center shadow-inner">
+        <p className="text-slate-400 text-xs font-black uppercase tracking-widest">Physical Location Coordinate</p>
+        <p className="text-[#002147] text-xl font-black uppercase tracking-wide mt-1">Off Likpe Road Bangalow – Hohoe, Ghana</p>
+      </section>
     </div>
   );
 }
