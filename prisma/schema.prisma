@@ -84,3 +84,13 @@ model Order {
   itemsPayload  String   @db.Text // Stores the stringified cart array with all custom fields
   createdAt     DateTime @default(now())
 }
+model PortfolioItem {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  category    String   // "graphics", "video", "stickers"
+  imageUrlBefore String? // Used exclusively for laptop stickers
+  imageUrlAfter  String  // Main image or "After" picture
+  videoUrl    String?  // For video editing projects (YouTube/Vimeo/Cloud link)
+  createdAt   DateTime @default(now())
+}

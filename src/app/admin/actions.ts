@@ -3,35 +3,81 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-export async function createProduct(formData: FormData) {
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const priceInput = formData.get("price") as string;
-  const stockInput = formData.get("stockQuantity") as string;
-  const category = formData.get("category") as string;
-  const isCustomizableInput = formData.get("isCustomizable") as string;
-  const imageUrlInput = formData.get("imageUrl") as string;
-
-  if (!title || !priceInput || !stockInput || !category) {
-    throw new Error("Missing required form fields.");
+export async function getQueuedServices() {
+  try {
+    return await db.order.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  } catch {
+    return [];
   }
+}
 
-  // Use the provided image name or default to a generic asset placeholder if left blank
-  const finalImageUrl = imageUrlInput.trim() ? imageUrlInput.trim() : "/shop-day.jpeg";
+export async function uploadProduct(formData: FormData) {
+  try {
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const price = parseFloat(formData.get("price") as string);
+    const category = formData.get("category") as string;
+    const imageUrls = formData.get("imageUrls") as string || "/shop-day.jpeg";
+    const isCustomizable = formData.get("isCustomizable") === "true";
 
-  await db.product.create({
-    data: {
-      title: title.trim(),
-      description: description ? description.trim() : "",
-      price: parseFloat(priceInput),
-      stockQuantity: parseInt(stockInput, 10),
-      category: category.trim().toLowerCase(),
-      isCustomizable: isCustomizableInput === "true",
-      // Inside your src/app/admin/actions.ts file, verify data mapping reads:
-      imageUrls: finalImageUrl.toString()
-    },
-  });
+    await db.product.create({
+      data: {
+        title,
+        description,
+        price,
+        category,
+        imageUrls,
+        stockQuantity: 99,
+        isCustomizable
+      }
+    });
 
-  revalidatePath("/admin");
-  revalidatePath("/products");
+    revalidatePath("/products");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Failed to post item.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function uploadPortfolioItem(formData: FormData) {
+  try {
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const category = formData.get("category") as string;
+    const imageUrlBefore = formData.get("imageUrlBefore") as string || null;
+    const imageUrlAfter = formData.get("imageUrlAfter") as string;
+    const videoUrl = formData.get("videoUrl") as string || null;
+
+    await db.portfolioItem.create({
+      data: {
+        title,
+        description,
+        category,
+        imageUrlBefore,
+        imageUrlAfter,
+        videoUrl
+      }
+    });
+
+    revalidatePath("/portfolio");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Failed to populate showroom.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function clearProcessedOrder(id: string) {
+  try {
+    await db.order.delete({ where: { id } });
+    revalidatePath("/admin");
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
 }

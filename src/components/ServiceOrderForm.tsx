@@ -13,6 +13,11 @@ export default function ServiceOrderForm({ serviceType, title }: FormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Common Fields
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [appointmentNote, setAppointmentNote] = useState("");
+
   // MoMo Form States
   const [momoType, setMomoType] = useState("Airtime");
   const [network, setNetwork] = useState("MTN");
@@ -24,22 +29,26 @@ export default function ServiceOrderForm({ serviceType, title }: FormProps) {
   const [checkerAction, setCheckerAction] = useState("Voucher Only");
   const [voucherQty, setVoucherQty] = useState(1);
   const [checkerType, setCheckerType] = useState("WAEC BECE");
-  const [candidateName, setCandidateName] = useState("");
-  const [indexNumber, setIndexNumber] = useState("");
+  const [candidateName, setIndexNumber] = useState("");
   const [examYear, setExamYear] = useState("2026");
 
-  // Expanded Banking Form States (Flyer Green Section)
+  // Banking Selection State
   const [bankingService, setBankingService] = useState("Deposit & Withdrawal");
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [accountNum, setAccountNum] = useState("");
-  const [targetBank, setTargetBank] = useState("");
-  const [billType, setBillType] = useState("ECG");
-  const [ghanaCard, setGhanaCard] = useState("");
 
-  const triggerToast = (msg: string) => {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(""), 4000);
+  const CLIENT_WHATSAPP = "233544208963";
+
+  // Detailed operational instructions shown directly to users inside the glass terminal
+  const getBankingDescription = (service: string) => {
+    switch (service) {
+      case "Account Opening (SMART)":
+        return "⚠️ Physical Presence Required. Please walk into our terminal desk with your valid Ghana Card. A live biometric registration photo capture will be executed on site.";
+      case "Deposit & Withdrawal":
+        return "Requires your physical bank card or linked identity documents at our local counter terminal to authorize financial clearances.";
+      case "Bill Payment":
+        return "Bring along your active ECG Meter Card or SmartCard customer account reference tokens for instant payment execution.";
+      default:
+        return "Requires validation at our physical terminal location. Submit an appointment notice below to queue your slot.";
+    }
   };
 
   const handleFormSubmission = (e: React.FormEvent) => {
@@ -49,7 +58,7 @@ export default function ServiceOrderForm({ serviceType, title }: FormProps) {
 
     if (serviceType === "momo") {
       if (!phone || (momoType === "Airtime" ? !amount : !bundlePlan)) return;
-      calculatedPrice = momoType === "Airtime" ? parseFloat(amount) : 10.00; 
+      calculatedPrice = momoType === "Airtime" ? parseFloat(amount) : 10.00;
       payloadData.momoOperation = momoType;
       payloadData.networkProvider = network;
       payloadData.targetPhone = phone.trim();
@@ -64,62 +73,48 @@ export default function ServiceOrderForm({ serviceType, title }: FormProps) {
       if (checkerAction === "Voucher Only") {
         payloadData.voucherQuantity = String(itemQty);
       } else {
-        if (!candidateName || !indexNumber || !examYear) return;
-        payloadData.candidateName = candidateName.trim();
-        payloadData.indexNumber = indexNumber.trim();
+        payloadData.candidateName = clientName.trim();
+        payloadData.indexNumber = candidateName.trim();
         payloadData.examYear = examYear.trim();
       }
     } 
     
     else if (serviceType === "banking") {
       if (!clientName || !clientPhone) return;
-      calculatedPrice = amount ? parseFloat(amount) : 1.00; 
+      calculatedPrice = 1.00; // Standard layout queue metric token
       payloadData.bankingOperation = bankingService;
       payloadData.clientName = clientName.trim();
       payloadData.clientPhone = clientPhone.trim();
-
-      // Gather contextual inputs dynamically based on active service parameters
-      if (bankingService === "Account Opening (SMART)") {
-        if (!ghanaCard) return;
-        payloadData.ghanaCard = ghanaCard.trim().toUpperCase();
-        calculatedPrice = 1.00; // Registration code processing threshold
-      } else if (["Deposit & Withdrawal", "Mini Statement Request", "Balance Inquiry", "Fidelity Money Transfer"].includes(bankingService)) {
-        if (!accountNum) return;
-        payloadData.accountNumber = accountNum.trim();
-      } else if (["Funds Transfer / Interbank", "Cash / Wallet Logistics"].includes(bankingService)) {
-        if (!accountNum || !targetBank) return;
-        payloadData.accountNumber = accountNum.trim();
-        payloadData.destinationTarget = targetBank.trim();
-      } else if (bankingService === "Bill Payment") {
-        if (!accountNum) return;
-        payloadData.billCategory = billType;
-        payloadData.meterOrAccountReference = accountNum.trim();
-      }
+      payloadData.adminInstructions = appointmentNote.trim();
     }
 
     addItem({
       id: `${serviceType}-${new Date().getTime()}`,
       title: serviceType === "momo" ? `${network} ${momoType}` : serviceType === "checker" ? `${checkerType} (${checkerAction})` : `Banking: ${bankingService}`,
-      price: calculatedPrice <= 0 ? 1.00 : calculatedPrice, 
+      price: calculatedPrice,
       quantity: 1,
       type: "service",
       customData: payloadData
     });
 
     setIsOpen(false);
-    triggerToast("SERVICE QUEUED IN CART SUCCESSFULLY");
     
-    // Clear inputs smoothly
-    setPhone(""); setAmount(""); setBundlePlan(""); setCandidateName(""); setIndexNumber(""); 
-    setClientName(""); setClientPhone(""); setAccountNum(""); setTargetBank(""); setGhanaCard("");
+    if (serviceType === "banking") {
+      // Redirect straight to WhatsApp text loop so they communicate immediately after queuing
+      const waText = encodeURIComponent(`Hello, I just queued a request for [${bankingService}] under the name ${clientName}. Note: ${appointmentNote}`);
+      window.open(`https://wa.me/${CLIENT_WHATSAPP}?text=${waText}`, "_blank");
+    } else {
+      setSuccessMsg("SERVICE QUEUED IN TERMINAL PAYLOAD");
+      setTimeout(() => setSuccessMsg(""), 4000);
+    }
+
+    // Reset parameters
+    setPhone(""); setAmount(""); setBundlePlan(""); setClientName(""); setClientPhone(""); setAppointmentNote("");
   };
 
   return (
     <>
-      <button 
-        onClick={() => setIsOpen(true)} 
-        className="w-full bg-[#002147] text-white font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl hover:bg-[#D4AF37] hover:text-[#002147] transition shadow-sm"
-      >
+      <button onClick={() => setIsOpen(true)} className="w-full bg-[#002147] text-white font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl hover:bg-[#D4AF37] hover:text-[#002147] transition shadow-sm">
         {title}
       </button>
 
@@ -130,8 +125,8 @@ export default function ServiceOrderForm({ serviceType, title }: FormProps) {
       )}
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto text-[#002147]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-[#002147]">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <h3 className="font-black text-sm uppercase tracking-tight">{title} Terminal</h3>
               <button type="button" onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-black font-bold text-sm">✕</button>
@@ -139,118 +134,79 @@ export default function ServiceOrderForm({ serviceType, title }: FormProps) {
 
             <form onSubmit={handleFormSubmission} className="space-y-4">
               
-              {/* --- 1. MOMO INTERFACE BRANCH --- */}
+              {/* --- BANKING INTERFACE (Simplified Workflow) --- */}
+              {serviceType === "banking" && (
+                <div className="space-y-3 text-left">
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-wider mb-1">Select Service</label>
+                    <select value={bankingService} onChange={(e) => setBankingService(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]">
+                      <option value="Account Opening (SMART)">Account Opening (SMART)</option>
+                      <option value="Deposit & Withdrawal">Deposit & Withdrawal</option>
+                      <option value="Funds Transfer / Interbank">Funds Transfer / Interbank</option>
+                      <option value="Mini Statement Request">Mini Statement Request</option>
+                      <option value="Balance Inquiry">Balance Inquiry</option>
+                      <option value="Bill Payment">Bill Payment</option>
+                    </select>
+                  </div>
+
+                  {/* Informational Guidance Box */}
+                  <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3.5 text-xs font-medium leading-relaxed">
+                    {getBankingDescription(bankingService)}
+                  </div>
+
+                  <input type="text" placeholder="Your Full Name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
+                  <input type="tel" placeholder="Your Phone Number" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
+                  <textarea rows={3} placeholder="Add a note for the Admin Dashboard (e.g., target appointment time or transaction details)..." value={appointmentNote} onChange={(e) => setAppointmentNote(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-3 text-xs font-medium focus:outline-none focus:border-[#D4AF37] resize-none" required />
+                </div>
+              )}
+
+              {/* --- MOMO INTERFACE --- */}
               {serviceType === "momo" && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setMomoType("Airtime")} className={`py-2 text-xs font-black uppercase rounded-xl transition ${momoType === "Airtime" ? "bg-[#002147] text-white" : "bg-slate-100 text-[#002147]"}`}>Airtime</button>
                     <button type="button" onClick={() => setMomoType("Bundle")} className={`py-2 text-xs font-black uppercase rounded-xl transition ${momoType === "Bundle" ? "bg-[#002147] text-white" : "bg-slate-100 text-[#002147]"}`}>Bundle</button>
                   </div>
-                  <div>
-                    <label className="block text-[9px] font-black uppercase tracking-wider mb-1">Network</label>
-                    <select value={network} onChange={(e) => setNetwork(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]">
-                      <option value="MTN">MTN Ghana</option>
-                      <option value="Telecel">Telecel Cash</option>
-                      <option value="AT">AT Ghana</option>
-                    </select>
-                  </div>
-                  <input type="tel" placeholder="Mobile Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
+                  <select value={network} onChange={(e) => setNetwork(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold">
+                    <option value="MTN">MTN Ghana</option>
+                    <option value="Telecel">Telecel Cash</option>
+                    <option value="AT">AT Ghana</option>
+                  </select>
+                  <input type="tel" placeholder="Mobile Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold" required />
                   {momoType === "Airtime" ? (
-                    <input type="number" placeholder="Amount (GH₵)" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold font-mono focus:outline-none focus:border-[#D4AF37]" required />
+                    <input type="number" placeholder="Amount (GH₵)" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold" required />
                   ) : (
-                    <input type="text" placeholder="Specify Plan (e.g. 3GB for 10GHS)" value={bundlePlan} onChange={(e) => setBundlePlan(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
+                    <input type="text" placeholder="Plan (e.g. 3GB for 10GHS)" value={bundlePlan} onChange={(e) => setBundlePlan(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold" required />
                   )}
                 </div>
               )}
 
-              {/* --- 2. CHECKER INTERFACE BRANCH --- */}
+              {/* --- CHECKER INTERFACE --- */}
               {serviceType === "checker" && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setCheckerAction("Voucher Only")} className={`py-2 text-xs font-black uppercase rounded-xl transition ${checkerAction === "Voucher Only" ? "bg-[#002147] text-white" : "bg-slate-100 text-[#002147]"}`}>Voucher Only</button>
                     <button type="button" onClick={() => setCheckerAction("Check Online")} className={`py-2 text-xs font-black uppercase rounded-xl transition ${checkerAction === "Check Online" ? "bg-[#002147] text-white" : "bg-slate-100 text-[#002147]"}`}>Check For Me</button>
                   </div>
-                  <div>
-                    <label className="block text-[9px] font-black uppercase tracking-wider mb-1">Exam Type</label>
-                    <select value={checkerType} onChange={(e) => setCheckerType(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]">
-                      <option value="WAEC BECE">WAEC BECE</option>
-                      <option value="WAEC WASSCE">WAEC WASSCE</option>
-                      <option value="NOVDEC">NOV/DEC Private</option>
-                    </select>
-                  </div>
+                  <select value={checkerType} onChange={(e) => setCheckerType(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold">
+                    <option value="WAEC BECE">WAEC BECE</option>
+                    <option value="WAEC WASSCE">WAEC WASSCE</option>
+                    <option value="NOVDEC">NOV/DEC Private</option>
+                  </select>
                   {checkerAction === "Voucher Only" ? (
-                    <input type="number" min="1" placeholder="Quantity" value={voucherQty} onChange={(e) => setVoucherQty(parseInt(e.target.value) || 1)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold font-mono focus:outline-none focus:border-[#D4AF37]" required />
+                    <input type="number" min="1" placeholder="Quantity" value={voucherQty} onChange={(e) => setVoucherQty(parseInt(e.target.value) || 1)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold" required />
                   ) : (
-                    <div className="space-y-3 animate-fadeIn">
-                      <input type="text" placeholder="Candidate Full Name" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
-                      <input type="text" placeholder="Index Number" value={indexNumber} onChange={(e) => setIndexNumber(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]" required />
-                      <input type="number" placeholder="Exam Year" value={examYear} onChange={(e) => setExamYear(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]" required />
+                    <div className="space-y-3">
+                      <input type="text" placeholder="Candidate Name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold" required />
+                      <input type="text" placeholder="Index Number" value={candidateName} onChange={(e) => setIndexNumber(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold" required />
+                      <input type="number" placeholder="Exam Year" value={examYear} onChange={(e) => setExamYear(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold" required />
                     </div>
                   )}
                 </div>
               )}
 
-              {/* --- 3. BANKING INTERFACE BRANCH (flyer matching precision) --- */}
-              {serviceType === "banking" && (
-                <div className="space-y-3 text-left">
-                  <div>
-                    <label className="block text-[9px] font-black uppercase tracking-wider mb-1">Service Option</label>
-                    <select value={bankingService} onChange={(e) => setBankingService(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]">
-                      <option value="Deposit & Withdrawal">Deposit & Withdrawal</option>
-                      <option value="Funds Transfer / Interbank">Funds Transfer / Interbank</option>
-                      <option value="Account Opening (SMART)">Account Opening (SMART)</option>
-                      <option value="Airtime Top Up">Airtime Top Up</option>
-                      <option value="Mini Statement Request">Mini Statement Request</option>
-                      <option value="Balance Inquiry">Balance Inquiry</option>
-                      <option value="Cash / Wallet Logistics">Cash to Wallet / Wallet to Cash</option>
-                      <option value="Fidelity Money Transfer">Fidelity Money Transfer</option>
-                      <option value="Bill Payment">Bill Payment</option>
-                    </select>
-                  </div>
-
-                  {/* Base Core Parameters common to all actions */}
-                  <input type="text" placeholder="Customer Full Name" value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
-                  <input type="tel" placeholder="Customer Phone Number" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
-                  
-                  {/* Option A: Pure Account Opening (SMART) - Only needs Ghana Card */}
-                  {bankingService === "Account Opening (SMART)" && (
-                    <input type="text" placeholder="Ghana Card ID Number (GHA-XXXXXXXXX-X)" value={ghanaCard} onChange={(e) => setGhanaCard(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold uppercase focus:outline-none focus:border-[#D4AF37] animate-fadeIn" required />
-                  )}
-
-                  {/* Option B: Account/Card Bound Services */}
-                  {["Deposit & Withdrawal", "Mini Statement Request", "Balance Inquiry", "Fidelity Money Transfer"].includes(bankingService) && (
-                    <input type="text" placeholder="Bank Account / Card Number" value={accountNum} onChange={(e) => setAccountNum(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37] animate-fadeIn" required />
-                  )}
-
-                  {/* Option C: Wire Transfers or External Network Handshakes */}
-                  {["Funds Transfer / Interbank", "Cash / Wallet Logistics"].includes(bankingService) && (
-                    <div className="space-y-3 animate-fadeIn">
-                      <input type="text" placeholder="Source Account Number" value={accountNum} onChange={(e) => setAccountNum(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]" required />
-                      <input type="text" placeholder="Target Destination (e.g. GCB Bank, MTN Mobile Wallet)" value={targetBank} onChange={(e) => setTargetBank(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]" required />
-                    </div>
-                  )}
-
-                  {/* Option D: Institutional Bill Payment Routing */}
-                  {bankingService === "Bill Payment" && (
-                    <div className="space-y-3 animate-fadeIn">
-                      <select value={billType} onChange={(e) => setBillType(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:border-[#D4AF37]">
-                        <option value="ECG">ECG Prepaid / Postpaid</option>
-                        <option value="Ghana Water">Ghana Water Company</option>
-                        <option value="DSTv/GOtv">DSTv / GOtv Subscriptions</option>
-                      </select>
-                      <input type="text" placeholder="Meter ID / SmartCard Card Number Reference" value={accountNum} onChange={(e) => setAccountNum(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37]" required />
-                    </div>
-                  )}
-
-                  {/* Option E: Pricing volume parameters for monetary streams (Hides completely for free check queries) */}
-                  {!["Account Opening (SMART)", "Mini Statement Request", "Balance Inquiry"].includes(bankingService) && (
-                    <input type="number" placeholder="Transaction Volume Amount (GH₵)" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-mono font-bold focus:outline-none focus:border-[#D4AF37] animate-fadeIn" required />
-                  )}
-                </div>
-              )}
-
-              <button type="submit" className="w-full bg-[#002147] text-white font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl hover:bg-[#D4AF37] hover:text-[#002147] transition shadow-md">
-                Confirm Service Queue Entry
+              <button type="submit" className="w-full bg-[#002147] text-white font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl hover:bg-[#D4AF37] hover:text-[#002147] transition">
+                {serviceType === "banking" ? "Queue Notice & Open WhatsApp" : "Confirm Queue Entry"}
               </button>
             </form>
           </div>
