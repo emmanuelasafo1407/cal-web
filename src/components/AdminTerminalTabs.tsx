@@ -35,8 +35,8 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
   const [productImgUrl, setProductImgUrl] = useState("");
   const [showroomBeforeUrl, setShowroomBeforeUrl] = useState("");
   const [showroomAfterUrl, setShowroomAfterUrl] = useState("");
+  const [showroomVideoUrl, setShowroomVideoUrl] = useState(""); // State for uploaded videos
 
-  // 1. Strict evaluation typecasting ensures .toLowerCase() compiles safely
   const filteredOrders = orders.filter((order) => {
     if (orderCategory === "all") return true;
     return order.items.some((item) => {
@@ -60,7 +60,7 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
   return (
     <div className="flex flex-col lg:flex-row gap-8 text-white min-h-[75vh]">
       
-      {/* PROFESSIONAL DASHBOARD SIDEBAR PANEL */}
+      {/* SIDEBAR PANEL */}
       <aside className="w-full lg:w-64 bg-black/40 backdrop-blur-2xl border border-white/[0.06] rounded-3xl p-5 flex flex-col gap-2 shrink-0">
         <p className="text-[9px] font-black uppercase text-[#D4AF37] tracking-[0.2em] px-3 mb-2">Navigation Nodes</p>
         <button onClick={() => setActiveTab("orders")} className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition ${activeTab === "orders" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}>
@@ -133,23 +133,27 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
           </div>
         )}
 
-        {/* VIEW B: PRODUCT INVENTORY FORM (Explicit inline typing string clears 'url' warnings) */}
+        {/* VIEW B: PRODUCT INVENTORY FORM */}
         {activeTab === "upload-product" && (
           <div className="max-w-xl space-y-4">
             <h3 className="font-black text-xs uppercase text-[#D4AF37] tracking-wider mb-2">Publish Product Asset</h3>
             <form action={async (fd) => {
-              if(productImgUrl) fd.append("imageUrls", productImgUrl);
+              if(!productImgUrl) { alert("Product image asset is required."); return; }
+              fd.append("imageUrls", productImgUrl);
               const res = await uploadProduct(fd);
               if (res.success) { alert("Asset published successfully!"); setProductImgUrl(""); setActiveTab("orders"); } else { alert(res.error); }
             }} className="space-y-4">
               <input type="text" name="title" placeholder="Product Title" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none focus:border-[#D4AF37]" required />
               <textarea name="description" placeholder="Specifications details..." rows={3} className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-medium text-white focus:outline-none focus:border-[#D4AF37]" required />
+              
               <div className="grid grid-cols-2 gap-4">
                 <input type="number" step="0.01" name="price" placeholder="Price (GH₵)" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-mono font-bold text-white focus:outline-none" required />
                 <select name="category" className="w-full bg-[#001a35] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none">
                   <option value="hardware">Phones & Devices</option>
                   <option value="electronics">Accessories & Chargers</option>
                   <option value="acoustics">Sound Systems</option>
+                  <option value="lighting">LED Lighting System</option>
+                  <option value="apparel">Custom Jerseys</option>
                   <option value="fabrics">Wear Fabrics</option>
                 </select>
               </div>
@@ -163,7 +167,7 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
           </div>
         )}
 
-        {/* VIEW C: SHOWROOM UPLOADER (Explicit inline typing string clears 'url' warnings) */}
+        {/* VIEW C: SHOWROOM UPLOADER */}
         {activeTab === "upload-showroom" && (
           <div className="max-w-xl space-y-4">
             <h3 className="font-black text-xs uppercase text-[#D4AF37] tracking-wider mb-2">Publish Portfolio Project</h3>
@@ -171,11 +175,14 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
               if(!showroomAfterUrl) { alert("Main image asset is mandatory."); return; }
               fd.append("imageUrlBefore", showroomBeforeUrl);
               fd.append("imageUrlAfter", showroomAfterUrl);
+              if(showroomVideoUrl) fd.append("videoUrl", showroomVideoUrl);
+              
               const res = await uploadPortfolioItem(fd);
-              if (res.success) { alert("Project uploaded live to Showroom!"); setShowroomBeforeUrl(""); setShowroomAfterUrl(""); setActiveTab("orders"); } else { alert(res.error); }
+              if (res.success) { alert("Project uploaded live to Showroom!"); setShowroomBeforeUrl(""); setShowroomAfterUrl(""); setShowroomVideoUrl(""); setActiveTab("orders"); } else { alert(res.error); }
             }} className="space-y-4">
               <input type="text" name="title" placeholder="Project Title" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none focus:border-[#D4AF37]" required />
               <textarea name="description" placeholder="Project concept summary..." rows={2} className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-medium text-white focus:outline-none focus:border-[#D4AF37]" required />
+              
               <select name="category" className="w-full bg-[#001a35] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none">
                 <option value="graphics">Graphic Design</option>
                 <option value="video">Video Editing</option>
@@ -185,9 +192,9 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
               <div className="space-y-3">
                 <CldUploader label={showroomBeforeUrl ? "✓ Before Image Staged" : "Upload 'Before' Image (Laptop Skin Optional)"} onUploadSuccess={(url: string) => setShowroomBeforeUrl(url)} />
                 <CldUploader label={showroomAfterUrl ? "✓ Main/After Design Asset Staged" : "Upload Showcase Image / After Image"} onUploadSuccess={(url: string) => setShowroomAfterUrl(url)} />
+                <CldUploader label={showroomVideoUrl ? "✓ Showcase Video File Staged" : "Upload Project Showcase Video File (Optional)"} onUploadSuccess={(url: string) => setShowroomVideoUrl(url)} />
               </div>
 
-              <input type="text" name="videoUrl" placeholder="Video streaming URL (Optional for editing works)" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none" />
               <button type="submit" className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl">
                 Save Staged Design Asset To Showroom
               </button>

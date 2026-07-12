@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import LayoutWrapper from "@/components/LayoutWrapper";
+import Script from "next/script"; // Added script wrapper
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,6 +22,12 @@ export default function RootLayout({
         <LayoutWrapper>
           {children}
         </LayoutWrapper>
+        
+        {/* Injects the Cloudinary global upload terminal script engine */}
+        <Script 
+          src="https://upload-widget.cloudinary.com/global/all.js" 
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
