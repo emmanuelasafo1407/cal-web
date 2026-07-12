@@ -4,6 +4,20 @@ import { useState } from "react";
 import { uploadProduct, uploadPortfolioItem, clearProcessedOrder } from "@/app/admin/actions";
 import CldUploader from "./CldUploader";
 import Link from "next/link";
+import { 
+  ClipboardList, 
+  Package, 
+  Image as ImageIcon, 
+  LogOut, 
+  CheckCircle, 
+  Layers, 
+  Smartphone, 
+  Cable, 
+  Volume2, 
+  Lightbulb, 
+  Shirt, 
+  Scissors 
+} from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -31,11 +45,12 @@ interface ComponentProps {
 export default function AdminTerminalTabs({ orders }: ComponentProps) {
   const [activeTab, setActiveTab] = useState("orders");
   const [orderCategory, setOrderCategory] = useState("all");
+  const [showroomCategory, setShowroomCategory] = useState("graphics"); // Category filter trigger hook
 
   const [productImgUrl, setProductImgUrl] = useState("");
   const [showroomBeforeUrl, setShowroomBeforeUrl] = useState("");
   const [showroomAfterUrl, setShowroomAfterUrl] = useState("");
-  const [showroomVideoUrl, setShowroomVideoUrl] = useState(""); // State for uploaded videos
+  const [showroomVideoUrl, setShowroomVideoUrl] = useState("");
 
   const filteredOrders = orders.filter((order) => {
     if (orderCategory === "all") return true;
@@ -63,17 +78,34 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
       {/* SIDEBAR PANEL */}
       <aside className="w-full lg:w-64 bg-black/40 backdrop-blur-2xl border border-white/[0.06] rounded-3xl p-5 flex flex-col gap-2 shrink-0">
         <p className="text-[9px] font-black uppercase text-[#D4AF37] tracking-[0.2em] px-3 mb-2">Navigation Nodes</p>
-        <button onClick={() => setActiveTab("orders")} className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition ${activeTab === "orders" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}>
-          📋 Incoming Orders ({orders.length})
+        
+        <button 
+          onClick={() => setActiveTab("orders")} 
+          className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "orders" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
+        >
+          <ClipboardList className="w-4 h-4" />
+          Incoming Orders ({orders.length})
         </button>
-        <button onClick={() => setActiveTab("upload-product")} className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition ${activeTab === "upload-product" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}>
-          📦 Add Store Inventory
+        
+        <button 
+          onClick={() => setActiveTab("upload-product")} 
+          className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "upload-product" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
+        >
+          <Package className="w-4 h-4" />
+          Add Store Inventory
         </button>
-        <button onClick={() => setActiveTab("upload-showroom")} className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition ${activeTab === "upload-showroom" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}>
-          🖼️ Showroom Uploader
+        
+        <button 
+          onClick={() => setActiveTab("upload-showroom")} 
+          className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "upload-showroom" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          Showroom Uploader
         </button>
+        
         <div className="mt-auto pt-4 border-t border-white/[0.05]">
-          <Link href="/" className="w-full text-center block px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition">
+          <Link href="/" className="w-full text-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2">
+            <LogOut className="w-3 h-3" />
             Terminate Session
           </Link>
         </div>
@@ -122,8 +154,9 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
                     </div>
                     <div className="pt-3 border-t border-white/[0.05] flex justify-between items-center">
                       <span className="font-mono font-black text-xs text-white">GH₵ {order.totalAmount.toFixed(2)}</span>
-                      <button onClick={() => sendReceiptNotification(order)} className="bg-white text-[#002147] font-black text-[9px] uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-[#D4AF37] transition">
-                        ✓ Dispatched / Alert Client
+                      <button onClick={() => sendReceiptNotification(order)} className="bg-white text-[#002147] font-black text-[9px] uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-[#D4AF37] transition flex items-center gap-1.5">
+                        <CheckCircle className="w-3 h-3" />
+                        Dispatched / Alert Client
                       </button>
                     </div>
                   </div>
@@ -158,7 +191,7 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
                 </select>
               </div>
               
-              <CldUploader label={productImgUrl ? "✓ Product Image Uploaded" : "Upload Product Image"} onUploadSuccess={(url: string) => setProductImgUrl(url)} />
+              <CldUploader acceptType="image" label={productImgUrl ? "✓ Product Image Uploaded" : "Upload Product Image"} onUploadSuccess={(url: string) => setProductImgUrl(url)} />
               
               <button type="submit" className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl">
                 Save Asset Live To Store Catalog
@@ -167,35 +200,91 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
           </div>
         )}
 
-        {/* VIEW C: SHOWROOM UPLOADER */}
+        {/* VIEW C: SHOWROOM CREATIVE PORTFOLIO MANAGER */}
         {activeTab === "upload-showroom" && (
           <div className="max-w-xl space-y-4">
             <h3 className="font-black text-xs uppercase text-[#D4AF37] tracking-wider mb-2">Publish Portfolio Project</h3>
             <form action={async (fd) => {
-              if(!showroomAfterUrl) { alert("Main image asset is mandatory."); return; }
-              fd.append("imageUrlBefore", showroomBeforeUrl);
-              fd.append("imageUrlAfter", showroomAfterUrl);
-              if(showroomVideoUrl) fd.append("videoUrl", showroomVideoUrl);
+              fd.append("category", showroomCategory);
               
+              if (showroomCategory === "graphics") {
+                if(!showroomAfterUrl) { alert("Design layout file is required."); return; }
+                fd.append("imageUrlAfter", showroomAfterUrl);
+              } else if (showroomCategory === "video") {
+                if(!showroomVideoUrl) { alert("Showcase production video file is required."); return; }
+                fd.append("videoUrl", showroomVideoUrl);
+                fd.append("imageUrlAfter", "/video-placeholder.jpg"); // Fallback frame reference
+              } else if (showroomCategory === "stickers") {
+                if(!showroomBeforeUrl || !showroomAfterUrl) { alert("Both 'Before' and 'After' skin layout images are required."); return; }
+                fd.append("imageUrlBefore", showroomBeforeUrl);
+                fd.append("imageUrlAfter", showroomAfterUrl);
+              }
+
               const res = await uploadPortfolioItem(fd);
-              if (res.success) { alert("Project uploaded live to Showroom!"); setShowroomBeforeUrl(""); setShowroomAfterUrl(""); setShowroomVideoUrl(""); setActiveTab("orders"); } else { alert(res.error); }
+              if (res.success) { 
+                alert("Project uploaded live to Showroom!"); 
+                setShowroomBeforeUrl(""); 
+                setShowroomAfterUrl(""); 
+                setShowroomVideoUrl(""); 
+                setActiveTab("orders"); 
+              } else { 
+                alert(res.error); 
+              }
             }} className="space-y-4">
+              
               <input type="text" name="title" placeholder="Project Title" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none focus:border-[#D4AF37]" required />
               <textarea name="description" placeholder="Project concept summary..." rows={2} className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-medium text-white focus:outline-none focus:border-[#D4AF37]" required />
               
-              <select name="category" className="w-full bg-[#001a35] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none">
+              <select 
+                value={showroomCategory}
+                onChange={(e) => {
+                  setShowroomCategory(e.target.value);
+                  setShowroomBeforeUrl("");
+                  setShowroomAfterUrl("");
+                  setShowroomVideoUrl("");
+                }}
+                className="w-full bg-[#001a35] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none"
+              >
                 <option value="graphics">Graphic Design</option>
                 <option value="video">Video Editing</option>
                 <option value="stickers">Laptop Skins Wrap</option>
               </select>
               
-              <div className="space-y-3">
-                <CldUploader label={showroomBeforeUrl ? "✓ Before Image Staged" : "Upload 'Before' Image (Laptop Skin Optional)"} onUploadSuccess={(url: string) => setShowroomBeforeUrl(url)} />
-                <CldUploader label={showroomAfterUrl ? "✓ Main/After Design Asset Staged" : "Upload Showcase Image / After Image"} onUploadSuccess={(url: string) => setShowroomAfterUrl(url)} />
-                <CldUploader label={showroomVideoUrl ? "✓ Showcase Video File Staged" : "Upload Project Showcase Video File (Optional)"} onUploadSuccess={(url: string) => setShowroomVideoUrl(url)} />
+              {/* DYNAMIC FIELD RENDERING PER CATEGORY SELECTION */}
+              <div className="space-y-3 pt-2">
+                {showroomCategory === "graphics" && (
+                  <CldUploader 
+                    acceptType="image" 
+                    label={showroomAfterUrl ? "✓ Design Showcase Image Loaded" : "Upload Design Image Asset"} 
+                    onUploadSuccess={(url: string) => setShowroomAfterUrl(url)} 
+                  />
+                )}
+
+                {showroomCategory === "video" && (
+                  <CldUploader 
+                    acceptType="video" 
+                    label={showroomVideoUrl ? "✓ Production Video File Loaded" : "Upload Video Production File (.mp4/.mov)"} 
+                    onUploadSuccess={(url: string) => setShowroomVideoUrl(url)} 
+                  />
+                )}
+
+                {showroomCategory === "stickers" && (
+                  <div className="grid gap-3">
+                    <CldUploader 
+                      acceptType="image" 
+                      label={showroomBeforeUrl ? "✓ 'Before' Skin Image Loaded" : "Upload 'Before' Wrap Status Image"} 
+                      onUploadSuccess={(url: string) => setShowroomBeforeUrl(url)} 
+                    />
+                    <CldUploader 
+                      acceptType="image" 
+                      label={showroomAfterUrl ? "✓ 'After' Skin Image Loaded" : "Upload Finished 'After' Wrap Image"} 
+                      onUploadSuccess={(url: string) => setShowroomAfterUrl(url)} 
+                    />
+                  </div>
+                )}
               </div>
 
-              <button type="submit" className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl">
+              <button type="submit" className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl mt-4">
                 Save Staged Design Asset To Showroom
               </button>
             </form>
