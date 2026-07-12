@@ -10,14 +10,12 @@ import {
   Image as ImageIcon, 
   LogOut, 
   CheckCircle, 
-  Layers, 
-  Smartphone, 
-  Cable, 
-  Volume2, 
-  Lightbulb, 
-  Shirt, 
-  Scissors 
+  Coins, 
+  Clock, 
+  TrendingUp, 
+  Smartphone 
 } from "lucide-react";
+import { logoutAdmin } from "@/app/admin/auth-actions";
 
 interface OrderItem {
   id: string;
@@ -45,12 +43,24 @@ interface ComponentProps {
 export default function AdminTerminalTabs({ orders }: ComponentProps) {
   const [activeTab, setActiveTab] = useState("orders");
   const [orderCategory, setOrderCategory] = useState("all");
-  const [showroomCategory, setShowroomCategory] = useState("graphics"); // Category filter trigger hook
+  const [showroomCategory, setShowroomCategory] = useState("graphics");
 
   const [productImgUrl, setProductImgUrl] = useState("");
   const [showroomBeforeUrl, setShowroomBeforeUrl] = useState("");
   const [showroomAfterUrl, setShowroomAfterUrl] = useState("");
   const [showroomVideoUrl, setShowroomVideoUrl] = useState("");
+
+  // FINANCIAL ANALYTICS ENGINE CALCULATION
+  const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+  const totalOrdersCount = orders.length;
+  
+  const totalMomoRevenue = orders
+    .filter(o => o.paymentMethod.toLowerCase() === "momo")
+    .reduce((sum, order) => sum + order.totalAmount, 0);
+    
+  const totalBankingRevenue = orders
+    .filter(o => o.paymentMethod.toLowerCase() === "banking")
+    .reduce((sum, order) => sum + order.totalAmount, 0);
 
   const filteredOrders = orders.filter((order) => {
     if (orderCategory === "all") return true;
@@ -67,7 +77,7 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
     
     const operationalMessage = isPhysical
       ? `Hello ${order.customerName}, Constant A. Liberty Ventures has confirmed your order for [${itemSummary}]. Your payment selection: ${order.paymentMethod.toUpperCase()}. Delivery destination: ${order.deliveryAddress}. Estimated distribution dispatch duration: 24 to 48 hours depending on terminal distance. Thank you.`
-      : `Hello ${order.customerName}, your service request for [${itemSummary}] has been received successfully at our agent terminal point. Processing queue initialized. Expect clearance completion shortly. Thank you.`;
+      : `Hello ${order.customerName}, your service request for [${itemSummary}] has been received successfully at our agent terminal point. Processing queue initialized. Expect clearance completion shortly. Thank you Trim.`;
 
     window.open(`https://wa.me/${order.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(operationalMessage)}`, "_blank");
   };
@@ -104,16 +114,64 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
         </button>
         
         <div className="mt-auto pt-4 border-t border-white/[0.05]">
-          <Link href="/" className="w-full text-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2">
+          <button 
+            onClick={async () => { if(confirm("Terminate admin session?")) await logoutAdmin(); }} 
+            className="w-full text-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2"
+          >
             <LogOut className="w-3 h-3" />
             Terminate Session
-          </Link>
+          </button>
         </div>
       </aside>
 
       {/* DYNAMIC WORKSPACE SECTION */}
-      <main className="flex-1 bg-black/20 border border-white/[0.04] rounded-3xl p-6 min-h-[60vh]">
+      <main className="flex-1 bg-black/20 border border-white/[0.04] rounded-3xl p-6 min-h-[60vh] space-y-6">
         
+        {/* EXECUTIVE ANALYTICS BANNER - FIXED GRID DISPLAY */}
+        {activeTab === "orders" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4">
+              <div className="p-3 bg-green-500/10 rounded-xl text-green-400">
+                <Coins className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Income</p>
+                <h3 className="text-lg font-mono font-black mt-0.5 text-white">GH₵ {totalRevenue.toFixed(2)}</h3>
+              </div>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4">
+              <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Momo Stream</p>
+                <h3 className="text-lg font-mono font-black mt-0.5 text-white">GH₵ {totalMomoRevenue.toFixed(2)}</h3>
+              </div>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4">
+              <div className="p-3 bg-purple-500/10 rounded-xl text-purple-400">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Bank Transfer</p>
+                <h3 className="text-lg font-mono font-black mt-0.5 text-white">GH₵ {totalBankingRevenue.toFixed(2)}</h3>
+              </div>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4">
+              <div className="p-3 bg-[#D4AF37]/10 rounded-xl text-[#D4AF37]">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Active Queue</p>
+                <h3 className="text-lg font-mono font-black mt-0.5 text-white">{totalOrdersCount} Tasks</h3>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* VIEW A: ORDERS FEED */}
         {activeTab === "orders" && (
           <div className="space-y-6">
@@ -137,7 +195,16 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
                         <button onClick={async () => { if(confirm("Archive order?")) await clearProcessedOrder(order.id); }} className="text-red-400 hover:text-red-500 font-bold uppercase">[ Archive ]</button>
                       </div>
                       <div>
-                        <h4 className="text-sm font-black uppercase text-white tracking-tight">{order.customerName}</h4>
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-sm font-black uppercase text-white tracking-tight">{order.customerName}</h4>
+                          <span className={`text-[8px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${
+                            order.paymentMethod.toLowerCase() === "momo" 
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20" 
+                              : "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          }`}>
+                            {order.paymentMethod}
+                          </span>
+                        </div>
                         <p className="text-[#D4AF37] text-xs font-mono font-bold">{order.phone}</p>
                         <p className="text-slate-400 text-[10px] mt-0.5">{order.deliveryAddress}</p>
                       </div>
@@ -213,7 +280,7 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
               } else if (showroomCategory === "video") {
                 if(!showroomVideoUrl) { alert("Showcase production video file is required."); return; }
                 fd.append("videoUrl", showroomVideoUrl);
-                fd.append("imageUrlAfter", "/video-placeholder.jpg"); // Fallback frame reference
+                fd.append("imageUrlAfter", "/video-placeholder.jpg");
               } else if (showroomCategory === "stickers") {
                 if(!showroomBeforeUrl || !showroomAfterUrl) { alert("Both 'Before' and 'After' skin layout images are required."); return; }
                 fd.append("imageUrlBefore", showroomBeforeUrl);
@@ -250,7 +317,6 @@ export default function AdminTerminalTabs({ orders }: ComponentProps) {
                 <option value="stickers">Laptop Skins Wrap</option>
               </select>
               
-              {/* DYNAMIC FIELD RENDERING PER CATEGORY SELECTION */}
               <div className="space-y-3 pt-2">
                 {showroomCategory === "graphics" && (
                   <CldUploader 

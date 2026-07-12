@@ -27,12 +27,14 @@ model Product {
   id             String   @id @default(uuid())
   title          String
   description    String?  @db.Text
-  category       String   
+  category       String
   price          Decimal  @db.Decimal(10, 2)
   stockQuantity  Int      @default(0) @map("stock_quantity")
-  imageUrls      Json     @map("image_urls") 
+  imageUrls      Json     @map("image_urls")
   isCustomizable Boolean  @default(false) @map("is_customizable")
   createdAt      DateTime @default(now()) @map("created_at")
+
+  orderItems OrderItem[] // The missing reverse relation bridge
 
   @@map("products")
 }
@@ -40,8 +42,8 @@ model Product {
 model Service {
   id           String   @id @default(uuid())
   serviceName  String   @map("service_name")
-  category     String   
-  basePrice    Decimal  @default(0.00) @db.Decimal(10, 2) @map("base_price")
+  category     String
+  basePrice    Decimal  @default(0.00) @map("base_price") @db.Decimal(10, 2)
   isAvailable  Boolean  @default(true) @map("is_available")
   instructions String?  @db.Text
   createdAt    DateTime @default(now()) @map("created_at")
@@ -55,8 +57,8 @@ model Transaction {
   profile     Profile?        @relation(fields: [profileId], references: [id], onDelete: Cascade)
   type        TransactionType
   status      Status          @default(PENDING)
-  totalAmount Decimal         @db.Decimal(10, 2) @map("total_amount")
-  metaData    Json?           @map("meta_data") 
+  totalAmount Decimal         @map("total_amount") @db.Decimal(10, 2)
+  metaData    Json?           @map("meta_data")
   createdAt   DateTime        @default(now()) @map("created_at")
 
   @@map("transactions")
@@ -73,37 +75,56 @@ enum Status {
   COMPLETED
   CANCELLED
 }
-/*model Order {
-  id            String   @id @default(uuid())
-  customerName  String
-  email         String
-  phone         String
-  paymentMethod String
-  paymentStatus String   @default("PENDING")
-  totalAmount   Float
-  itemsPayload  String   @db.Text // Stores the stringified cart array with all custom fields
-  createdAt     DateTime @default(now())
-}*/
+
+/**
+ * model Order {
+ * id            String   @id @default(uuid())
+ * customerName  String
+ * email         String
+ * phone         String
+ * paymentMethod String
+ * paymentStatus String   @default("PENDING")
+ * totalAmount   Float
+ * itemsPayload  String   @db.Text // Stores the stringified cart array with all custom fields
+ * createdAt     DateTime @default(now())
+ * }
+ */
 model PortfolioItem {
-  id          String   @id @default(uuid())
-  title       String
-  description String?  @db.Text
-  category    String   // "graphics", "video", "stickers"
+  id             String   @id @default(uuid())
+  title          String
+  description    String?  @db.Text
+  category       String // "graphics", "video", "stickers"
   imageUrlBefore String? // Used exclusively for laptop stickers
-  imageUrlAfter  String  // Main image or "After" picture
-  videoUrl    String?  // For video editing projects (YouTube/Vimeo/Cloud link)
-  createdAt   DateTime @default(now())
+  imageUrlAfter  String // Main image or "After" picture
+  videoUrl       String? // For video editing projects (YouTube/Vimeo/Cloud link)
+  createdAt      DateTime @default(now())
 }
+
 // Ensure your Order model looks similar to this to house metadata categories:
 model Order {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   customerName    String
   email           String
   phone           String
-  paymentMethod   String   // "online" or "delivery"
+  paymentMethod   String // "online" or "delivery"
   totalAmount     Float
   deliveryAddress String
-  items           Json     // Houses order item payload types
-  status          String   @default("PENDING") // PENDING, COMPLETED, CANCELLED
-  createdAt       DateTime @default(now())
+  items           OrderItem[] // Houses order item payload types
+  status          String      @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  createdAt       DateTime    @default(now())
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int     @default(1)
+  price     Decimal @db.Decimal(10, 2)
+
+  // Relationships
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
 }
