@@ -73,7 +73,7 @@ enum Status {
   COMPLETED
   CANCELLED
 }
-model Order {
+/*model Order {
   id            String   @id @default(uuid())
   customerName  String
   email         String
@@ -83,7 +83,7 @@ model Order {
   totalAmount   Float
   itemsPayload  String   @db.Text // Stores the stringified cart array with all custom fields
   createdAt     DateTime @default(now())
-}
+}*/
 model PortfolioItem {
   id          String   @id @default(uuid())
   title       String
@@ -93,4 +93,17 @@ model PortfolioItem {
   imageUrlAfter  String  // Main image or "After" picture
   videoUrl    String?  // For video editing projects (YouTube/Vimeo/Cloud link)
   createdAt   DateTime @default(now())
+}
+// Ensure your Order model looks similar to this to house metadata categories:
+model Order {
+  id              String   @id @default(uuid())
+  customerName    String
+  email           String
+  phone           String
+  paymentMethod   String   // "online" or "delivery"
+  totalAmount     Float
+  deliveryAddress String
+  items           Json     // Houses order item payload types
+  status          String   @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  createdAt       DateTime @default(now())
 }

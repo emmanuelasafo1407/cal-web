@@ -3,19 +3,38 @@ import AdminTerminalTabs from "@/components/AdminTerminalTabs";
 
 export const revalidate = 0;
 
+// Define an explicit type matching your Prisma Order schema fields
+interface PrismaOrderShape {
+  id: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  paymentMethod: string;
+  totalAmount: number;
+  deliveryAddress: string;
+  items: unknown; // Safe, type-strict alternative to any
+  createdAt: Date;
+}
+
 export default async function AdminDashboardPage() {
   const rawOrders = await getQueuedServices();
 
-  // Safely map incoming DB elements into readable layout payloads
-  // Safely map incoming DB elements into readable layout payloads using type casting
-  const orders = rawOrders.map((rawOrder) => {
-    const o = rawOrder as any;
-    let orderItemsArray: any[] = [];
+  // Typecast raw database rows to our strict interface structure
+  // Typecast raw database rows to our strict interface structure
+  const orders = (rawOrders as unknown as PrismaOrderShape[]).map((o) => {
+    let orderItemsArray: Array<{
+      id: string;
+      title: string;
+      price: number;
+      quantity: number;
+      customData?: Record<string, unknown>;
+    }> = [];
+    
     try {
       if (typeof o.items === "string") {
         orderItemsArray = JSON.parse(o.items);
       } else if (Array.isArray(o.items)) {
-        orderItemsArray = o.items;
+        orderItemsArray = o.items as typeof orderItemsArray;
       }
     } catch {
       orderItemsArray = [];
@@ -29,6 +48,7 @@ export default async function AdminDashboardPage() {
       paymentMethod: String(o.paymentMethod),
       totalAmount: Number(o.totalAmount),
       deliveryAddress: String(o.deliveryAddress || "N/A"),
+      createdAt: o.createdAt,
       items: orderItemsArray
     };
   });
