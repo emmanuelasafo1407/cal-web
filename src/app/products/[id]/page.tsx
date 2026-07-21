@@ -92,7 +92,20 @@ export default async function ProductDetailPage({ params }: PageProps) {
             <ProductOrderForm product={serializedProduct} />
           </div>
         </div>
+        const isOutOfStock = product.stockQuantity === 0;
 
+// Update your button element inside the form section to look like this:
+        <button
+          type="submit"
+          disabled={isOutOfStock}
+          className={`w-full py-4 rounded-xl text-xs font-black uppercase tracking-wider transition ${
+            isOutOfStock 
+              ? "bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed" 
+              : "bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147]"
+          }`}
+        >
+          {isOutOfStock ? "❌ OUT OF STOCK / SECURE RESERVATION LOCK" : "ADD TO TERMINAL CART"}
+        </button>
       </div>
     </div>
   );
