@@ -18,7 +18,7 @@ function generatePaystackConfig(email: string, totalBalance: number) {
     reference: `CAL-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
     email: email.trim() || "checkout@calweb.com",
     amount: Math.round(totalBalance * 100),
-    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_your_public_key_here",
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_live_f674486e87d44b25ec300c6be4b031c690862c5f",
     currency: "GHS",
   };
 }
@@ -46,7 +46,7 @@ function CheckoutFormContent() {
     reference: "INITIALIZING",
     email: "checkout@calweb.com",
     amount: 0,
-    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_8b85f75435de248882bc40f905cd10ee31b81e5c",
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_live_f674486e87d44b25ec300c6be4b031c690862c5f",
     currency: "GHS",
   });
 

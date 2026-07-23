@@ -6,7 +6,6 @@ import { Lock } from "lucide-react";
 
 export const revalidate = 0;
 
-// Custom interface structures to handle runtime data mapping error-free
 interface DynamicOrderItem {
   id: string;
   orderId?: string;
@@ -15,6 +14,8 @@ interface DynamicOrderItem {
   customData?: string;
   product?: {
     title?: string;
+    imageUrls?: string;
+    stockQuantity?: number;
   };
 }
 
@@ -27,6 +28,7 @@ interface DynamicOrder {
   totalAmount: unknown;
   deliveryAddress?: string;
   address?: string;
+  createdAt?: Date;
   items?: DynamicOrderItem[];
 }
 
@@ -34,7 +36,6 @@ export default async function AdminPage() {
   const cookieStore = await cookies();
   const isAuthenticated = cookieStore.get("admin_session_token")?.value === "active_authenticated_state";
 
-  // IF NOT AUTHENTICATED, RENDER THE SECURITY GATE WITH VISIBILITY TOGGLE FORM
   if (!isAuthenticated) {
     return (
       <div className="min-h-[85vh] flex items-center justify-center px-4 text-white bg-[#001124]">
@@ -53,19 +54,21 @@ export default async function AdminPage() {
     );
   }
 
-  // IF AUTHENTICATED, ACCESS ACTIVE DATASETS
-  const baseOrders = await db.order.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-
-  // Fetch from our newly created table structure safely
-  const orderItemsFeed = await db.orderItem.findMany({
-    include: {
-      product: true,
-    } as unknown as undefined,
-  });
+  // Fetch orders, inventory, and portfolio items simultaneously
+  const [baseOrders, orderItemsFeed, allProducts, allPortfolio] = await Promise.all([
+    db.order.findMany({
+      orderBy: { createdAt: "desc" },
+    }),
+    db.orderItem.findMany({
+      include: { product: true } as unknown as undefined,
+    }),
+    db.product.findMany({
+      orderBy: { createdAt: "desc" },
+    }),
+    db.portfolioItem.findMany({
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   const formattedOrders = (baseOrders as unknown as DynamicOrder[]).map((order) => {
     const matchedItems = (orderItemsFeed as unknown as DynamicOrderItem[]).filter(
@@ -75,21 +78,67 @@ export default async function AdminPage() {
     return {
       id: order.id,
       customerName: order.customerName || "Anonymous Customer",
-      email: order.email || "",
-      phone: order.phone || "",
+      email: order.email || "No Email Provided",
+      phone: order.phone || "No Phone Number",
       paymentMethod: order.paymentMethod || "momo",
       totalAmount: Number(order.totalAmount || 0),
-      deliveryAddress: order.deliveryAddress || order.address || "N/A",
-      items: matchedItems.map((it) => ({
-        id: it.id,
-        title: it.product?.title || "Custom Digital Service Token",
-        price: Number(it.price || 0),
-        quantity: it.quantity || 1,
-        customData: it.customData ? JSON.parse(it.customData) : undefined,
-      })),
+      deliveryAddress: order.deliveryAddress || order.address || "Location Unspecified",
+      items: matchedItems.map((it) => {
+        let parsedImage = "/bg-evening.jpeg";
+        if (it.product?.imageUrls) {
+          try {
+            const arr = typeof it.product.imageUrls === "string" ? JSON.parse(it.product.imageUrls) : it.product.imageUrls;
+            if (Array.isArray(arr) && arr.length > 0) parsedImage = arr[0];
+            else if (typeof arr === "string" && arr.trim().length > 0) parsedImage = arr;
+          } catch {
+            parsedImage = typeof it.product.imageUrls === "string" ? it.product.imageUrls : "/bg-evening.jpeg";
+          }
+        }
+
+        return {
+          id: it.id,
+          title: it.product?.title || "Custom Digital Service Token",
+          price: Number(it.price || 0),
+          quantity: it.quantity || 1,
+          imageUrl: parsedImage,
+          customData: it.customData ? JSON.parse(it.customData) : undefined,
+        };
+      }),
     };
   });
 
+  const formattedProducts = allProducts.map((p) => {
+    let parsedImage = "/bg-evening.jpeg";
+    if (p.imageUrls) {
+      try {
+        const arr = typeof p.imageUrls === "string" ? JSON.parse(p.imageUrls) : p.imageUrls;
+        if (Array.isArray(arr) && arr.length > 0) parsedImage = arr[0];
+        else if (typeof arr === "string" && arr.trim().length > 0) parsedImage = arr;
+      } catch {
+        parsedImage = typeof p.imageUrls === "string" ? p.imageUrls : "/bg-evening.jpeg";
+      }
+    }
+
+    return {
+      id: p.id,
+      title: p.title,
+      description: p.description || "",
+      price: Number(p.price),
+      category: p.category,
+      stockQuantity: p.stockQuantity,
+      imageUrl: parsedImage,
+    };
+  });
+
+ const formattedPortfolio = allPortfolio.map((pf) => ({
+    id: pf.id,
+    title: pf.title,
+    description: pf.description ?? "", // Resolves TS2322 string | null error
+    category: pf.category,
+    imageUrlBefore: pf.imageUrlBefore || undefined,
+    imageUrlAfter: pf.imageUrlAfter || undefined,
+    videoUrl: pf.videoUrl || undefined,
+  }));
   return (
     <div className="p-6 lg:p-12 bg-[#001124] min-h-screen text-white">
       <header className="mb-8 border-b border-white/[0.06] pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -103,7 +152,11 @@ export default async function AdminPage() {
         </div>
       </header>
 
-      <AdminTerminalTabs orders={formattedOrders} />
+      <AdminTerminalTabs 
+        orders={formattedOrders} 
+        products={formattedProducts} 
+        portfolio={formattedPortfolio} 
+      />
     </div>
   );
 }
