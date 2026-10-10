@@ -8,11 +8,11 @@ generator client {
 }
 
 model Profile {
-  id           String        @id @default(uuid())
-  fullName     String?       @map("full_name")
-  phoneNumber  String?       @map("phone_number")
-  role         Role          @default(CUSTOMER)
-  createdAt    DateTime      @default(now()) @map("created_at")
+  id          String        @id @default(uuid())
+  fullName    String?       @map("full_name")
+  phoneNumber String?       @map("phone_number")
+  role        Role          @default(CUSTOMER)
+  createdAt   DateTime      @default(now()) @map("created_at")
   transactions Transaction[]
 
   @@map("profiles")
@@ -24,17 +24,17 @@ enum Role {
 }
 
 model Product {
-  id             String   @id @default(uuid())
+  id             String      @id @default(uuid())
   title          String
-  description    String?  @db.Text
+  description    String?     @db.Text
   category       String
-  price          Decimal  @db.Decimal(10, 2)
-  stockQuantity  Int      @default(0) @map("stock_quantity")
-  imageUrls      Json     @map("image_urls")
-  isCustomizable Boolean  @default(false) @map("is_customizable")
-  createdAt      DateTime @default(now()) @map("created_at")
+  price          Decimal     @db.Decimal(10, 2)
+  stockQuantity  Int         @default(0) @map("stock_quantity")
+  imageUrls      Json        @map("image_urls")
+  isCustomizable Boolean     @default(false) @map("is_customizable")
+  createdAt      DateTime    @default(now()) @map("created_at")
 
-  orderItems OrderItem[] // The missing reverse relation bridge
+  orderItems OrderItem[]
 
   @@map("products")
 }
@@ -76,50 +76,37 @@ enum Status {
   CANCELLED
 }
 
-/**
- * model Order {
- * id            String   @id @default(uuid())
- * customerName  String
- * email         String
- * phone         String
- * paymentMethod String
- * paymentStatus String   @default("PENDING")
- * totalAmount   Float
- * itemsPayload  String   @db.Text // Stores the stringified cart array with all custom fields
- * createdAt     DateTime @default(now())
- * }
- */
 model PortfolioItem {
   id             String   @id @default(uuid())
   title          String
   description    String?  @db.Text
-  category       String // "graphics", "video", "stickers"
-  imageUrlBefore String? // Used exclusively for laptop stickers
-  imageUrlAfter  String // Main image or "After" picture
-  videoUrl       String? // For video editing projects (YouTube/Vimeo/Cloud link)
+  category       String   // "graphics", "video", "stickers"
+  imageUrlBefore String?  // Used exclusively for laptop stickers
+  imageUrlAfter  String   // Main image or "After" picture
+  videoUrl       String?  // For video editing projects
   createdAt      DateTime @default(now())
 }
 
-// Ensure your Order model looks similar to this to house metadata categories:
 model Order {
   id              String      @id @default(uuid())
   customerName    String
   email           String
   phone           String
-  paymentMethod   String // "online" or "delivery"
+  paymentMethod   String      // "online" or "delivery"
   totalAmount     Float
   deliveryAddress String
-  items           OrderItem[] // Houses order item payload types
-  status          String      @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  items           OrderItem[]
+  status          String      @default("PENDING")
   createdAt       DateTime    @default(now())
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  productId String
-  quantity  Int     @default(1)
-  price     Decimal @db.Decimal(10, 2)
+  id         String   @id @default(uuid())
+  orderId    String
+  productId  String
+  quantity   Int      @default(1)
+  price      Decimal  @db.Decimal(10, 2)
+  customData Json?    // Stores custom options (team, size, printed name/number)
 
   // Relationships
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)

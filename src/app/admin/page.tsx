@@ -6,32 +6,6 @@ import { Lock } from "lucide-react";
 
 export const revalidate = 0;
 
-interface DynamicOrderItem {
-  id: string;
-  orderId?: string;
-  price: unknown;
-  quantity?: number;
-  customData?: string;
-  product?: {
-    title?: string;
-    imageUrls?: string;
-    stockQuantity?: number;
-  };
-}
-
-interface DynamicOrder {
-  id: string;
-  customerName?: string;
-  email?: string;
-  phone?: string;
-  paymentMethod?: string;
-  totalAmount: unknown;
-  deliveryAddress?: string;
-  address?: string;
-  createdAt?: Date;
-  items?: DynamicOrderItem[];
-}
-
 export default async function AdminPage() {
   const cookieStore = await cookies();
   const isAuthenticated = cookieStore.get("admin_session_token")?.value === "active_authenticated_state";
@@ -54,13 +28,15 @@ export default async function AdminPage() {
     );
   }
 
-  // Fetch orders, inventory, and portfolio items simultaneously
+  // Fetch orders, orderItems with product relations, products, and portfolio
   const [baseOrders, orderItemsFeed, allProducts, allPortfolio] = await Promise.all([
     db.order.findMany({
       orderBy: { createdAt: "desc" },
     }),
     db.orderItem.findMany({
-      include: { product: true } as unknown as undefined,
+      include: {
+        product: true,
+      },
     }),
     db.product.findMany({
       orderBy: { createdAt: "desc" },
@@ -70,10 +46,8 @@ export default async function AdminPage() {
     }),
   ]);
 
-  const formattedOrders = (baseOrders as unknown as DynamicOrder[]).map((order) => {
-    const matchedItems = (orderItemsFeed as unknown as DynamicOrderItem[]).filter(
-      (item: DynamicOrderItem) => item.orderId === order.id
-    );
+  const formattedOrders = baseOrders.map((order) => {
+    const matchedItems = orderItemsFeed.filter((item) => item.orderId === order.id);
 
     return {
       id: order.id,
@@ -82,40 +56,49 @@ export default async function AdminPage() {
       phone: order.phone || "No Phone Number",
       paymentMethod: order.paymentMethod || "momo",
       totalAmount: Number(order.totalAmount || 0),
-      deliveryAddress: order.deliveryAddress || order.address || "Location Unspecified",
+      deliveryAddress: order.deliveryAddress || "Location Unspecified",
       items: matchedItems.map((it) => {
-        let parsedImage = "/bg-evening.jpeg";
+        let parsedImage = "/shop-day.jpeg";
         if (it.product?.imageUrls) {
           try {
             const arr = typeof it.product.imageUrls === "string" ? JSON.parse(it.product.imageUrls) : it.product.imageUrls;
             if (Array.isArray(arr) && arr.length > 0) parsedImage = arr[0];
             else if (typeof arr === "string" && arr.trim().length > 0) parsedImage = arr;
           } catch {
-            parsedImage = typeof it.product.imageUrls === "string" ? it.product.imageUrls : "/bg-evening.jpeg";
+            parsedImage = typeof it.product.imageUrls === "string" ? it.product.imageUrls : "/shop-day.jpeg";
+          }
+        }
+
+        let parsedCustomData = undefined;
+        if (it.customData) {
+          try {
+            parsedCustomData = typeof it.customData === "string" ? JSON.parse(it.customData) : it.customData;
+          } catch {
+            parsedCustomData = undefined;
           }
         }
 
         return {
           id: it.id,
-          title: it.product?.title || "Custom Digital Service Token",
+          title: it.product?.title || "Custom Order Item",
           price: Number(it.price || 0),
           quantity: it.quantity || 1,
           imageUrl: parsedImage,
-          customData: it.customData ? JSON.parse(it.customData) : undefined,
+          customData: parsedCustomData,
         };
       }),
     };
   });
 
   const formattedProducts = allProducts.map((p) => {
-    let parsedImage = "/bg-evening.jpeg";
+    let parsedImage = "/shop-day.jpeg";
     if (p.imageUrls) {
       try {
         const arr = typeof p.imageUrls === "string" ? JSON.parse(p.imageUrls) : p.imageUrls;
         if (Array.isArray(arr) && arr.length > 0) parsedImage = arr[0];
         else if (typeof arr === "string" && arr.trim().length > 0) parsedImage = arr;
       } catch {
-        parsedImage = typeof p.imageUrls === "string" ? p.imageUrls : "/bg-evening.jpeg";
+        parsedImage = typeof p.imageUrls === "string" ? p.imageUrls : "/shop-day.jpeg";
       }
     }
 
@@ -130,15 +113,16 @@ export default async function AdminPage() {
     };
   });
 
- const formattedPortfolio = allPortfolio.map((pf) => ({
+  const formattedPortfolio = allPortfolio.map((pf) => ({
     id: pf.id,
     title: pf.title,
-    description: pf.description ?? "", // Resolves TS2322 string | null error
+    description: pf.description ?? "",
     category: pf.category,
     imageUrlBefore: pf.imageUrlBefore || undefined,
     imageUrlAfter: pf.imageUrlAfter || undefined,
     videoUrl: pf.videoUrl || undefined,
   }));
+
   return (
     <div className="p-6 lg:p-12 bg-[#001124] min-h-screen text-white">
       <header className="mb-8 border-b border-white/[0.06] pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

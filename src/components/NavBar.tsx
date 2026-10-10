@@ -39,7 +39,7 @@ export default function NavBar() {
         {/* Right Side Control Wrapper */}
         <div className="flex items-center gap-2 bg-white/[0.04] backdrop-blur-xl border border-white/10 p-1.5 rounded-xl">
           
-          {/* Desktop Links (Hidden on small mobile viewports) */}
+          {/* Desktop Links */}
           <nav className="hidden md:flex items-center gap-5 font-black text-[10px] uppercase tracking-wider text-white px-2">
             {links.map((link) => (
               <Link key={link.href} href={link.href} className="hover:text-[#D4AF37] transition duration-200">
@@ -62,7 +62,7 @@ export default function NavBar() {
             <span className="hidden sm:inline">Contact</span>
           </a>
 
-          {/* Premium Cart Capsule (Always Visible on Mobile now!) */}
+          {/* Cart Capsule */}
           <Link
             href="/checkout"
             className="relative flex items-center gap-1.5 bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg hover:shadow-[#D4AF37]/20 transition duration-200"
@@ -86,7 +86,7 @@ export default function NavBar() {
 
       {/* Slide-down Mobile Menu Panel Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden mt-3 pt-3 border-t border-white/10 animate-fadeIn text-center">
+        <div className="md:hidden mt-3 pt-3 border-t border-white/10 text-center">
           <nav className="flex flex-col gap-3 font-black text-[11px] uppercase tracking-widest text-white pb-2">
             {links.map((link) => (
               <Link

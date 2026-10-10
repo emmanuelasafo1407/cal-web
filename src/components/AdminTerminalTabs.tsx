@@ -1,49 +1,44 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { 
-  uploadProduct, 
-  uploadPortfolioItem, 
-  clearProcessedOrder, 
-  toggleStockStatus, 
-  deleteProduct, 
-  deletePortfolioItem,
-  updateProductDetails,
-  updateOrderStatus
-} from "@/app/admin/actions";
-import CldUploader from "./CldUploader";
-import { 
-  ClipboardList, 
   Package, 
-  Image as ImageIcon, 
-  LogOut, 
-  CheckCircle, 
-  Coins, 
-  Clock, 
-  TrendingUp, 
-  Smartphone,
-  AlertTriangle,
-  Trash2,
-  Edit,
-  Phone,
-  Mail,
-  MapPin,
-  X,
-  Search,
-  ListFilter,
-  PlusCircle,
-  FolderKanban,
-  BarChart3,
-  Layers,
-  CreditCard,
-  Users,
-  Settings,
+  Search, 
+  MessageCircle, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  X, 
   Download,
-  ShieldCheck,
-  Activity,
-  Zap
+  BarChart3, 
+  Users, 
+  Settings, 
+  CheckCircle2, 
+  CreditCard, 
+  Grid, 
+  Image as ImageIcon,
+  LogOut,
+  TrendingUp,
+  DollarSign,
+  ShoppingBag,
+  ExternalLink
 } from "lucide-react";
-import { logoutAdmin } from "@/app/admin/auth-actions";
+import CldUploader from "@/components/CldUploader";
+
+interface CustomItemData {
+  title?: string;
+  category?: string;
+  teamName?: string;
+  season?: string;
+  kitType?: string;
+  size?: string;
+  customized?: string;
+  printedName?: string;
+  printedNumber?: string;
+  [key: string]: unknown;
+}
 
 interface OrderItem {
   id: string;
@@ -51,10 +46,10 @@ interface OrderItem {
   price: number;
   quantity: number;
   imageUrl?: string;
-  customData?: Record<string, unknown>;
+  customData?: CustomItemData;
 }
 
-interface OrderMapped {
+interface Order {
   id: string;
   customerName: string;
   email: string;
@@ -65,7 +60,7 @@ interface OrderMapped {
   items: OrderItem[];
 }
 
-interface ProductItem {
+interface Product {
   id: string;
   title: string;
   description: string;
@@ -85,666 +80,1188 @@ interface PortfolioItem {
   videoUrl?: string;
 }
 
-interface ComponentProps {
-  orders: OrderMapped[];
-  products?: ProductItem[];
+interface AdminTerminalTabsProps {
+  orders: Order[];
+  products?: Product[];
   portfolio?: PortfolioItem[];
 }
 
-export default function AdminTerminalTabs({ orders, products = [], portfolio = [] }: ComponentProps) {
-  // NAVIGATION NODES STATE (All 5 New Modules Included)
-  const [activeTab, setActiveTab] = useState<
-    "orders" | "inventory" | "showroom" | "analytics" | "service-queue" | "gateway" | "crm" | "settings"
-  >("orders");
+export default function AdminTerminalTabs({ 
+  orders = [], 
+  products = [], 
+  portfolio = [] 
+}: AdminTerminalTabsProps) {
+  const router = useRouter();
 
-  // Sub-Tab Views
-  const [inventorySubTab, setInventorySubTab] = useState<"list" | "add">("list");
-  const [showroomSubTab, setShowroomSubTab] = useState<"list" | "add">("list");
-
-  // Filters & Search
-  const [orderCategory, setOrderCategory] = useState("all");
-  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState("all");
-  const [showroomCategoryFilter, setShowroomCategoryFilter] = useState("all");
+  // Navigation & Filtering
+  const [activeMainTab, setActiveMainTab] = useState<
+    "ORDERS" | "CATALOG" | "SHOWROOM" | "ANALYTICS" | "PAYSTACK" | "CRM" | "SETTINGS"
+  >("ORDERS");
+  
+  const [feedCategory, setFeedCategory] = useState<"MASTER" | "MOMO" | "BANKING" | "CHECKER" | "PRODUCT">("MASTER");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Editing & Modals
-  const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
-  const [showroomFormCategory, setShowroomFormCategory] = useState("graphics");
+  // Local State for Instant UI Sync
+  const [localProducts, setLocalProducts] = useState<Product[]>(products);
+  const [localPortfolio, setLocalPortfolio] = useState<PortfolioItem[]>(portfolio);
 
-  const [productImgUrl, setProductImgUrl] = useState("");
-  const [editProductImgUrl, setEditProductImgUrl] = useState("");
-  const [showroomBeforeUrl, setShowroomBeforeUrl] = useState("");
-  const [showroomAfterUrl, setShowroomAfterUrl] = useState("");
-  const [showroomVideoUrl, setShowroomVideoUrl] = useState("");
-
-  // Financial Analytics Calculations
-  const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-  const totalOrdersCount = orders.length;
-  const avgOrderValue = totalOrdersCount > 0 ? totalRevenue / totalOrdersCount : 0;
+  // Modals & Action States
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
-  const totalMomoRevenue = orders
-    .filter(o => o.paymentMethod.toLowerCase() === "momo" || o.paymentMethod.toLowerCase().includes("paystack"))
-    .reduce((sum, order) => sum + order.totalAmount, 0);
-    
-  const totalBankingRevenue = orders
-    .filter(o => o.paymentMethod.toLowerCase() === "banking")
-    .reduce((sum, order) => sum + order.totalAmount, 0);
+  // Showroom View / Edit / Add States
+  const [isAddPortfolioOpen, setIsAddPortfolioOpen] = useState(false);
+  const [viewingPortfolio, setViewingPortfolio] = useState<PortfolioItem | null>(null);
+  const [editingPortfolio, setEditingPortfolio] = useState<PortfolioItem | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // CRM Aggregation: Unique Customers
-  const customerMap = new Map<string, { name: string; email: string; phone: string; address: string; totalSpent: number; orderCount: number }>();
-  orders.forEach(o => {
-    const key = o.phone || o.customerName;
-    if (customerMap.has(key)) {
-      const existing = customerMap.get(key)!;
-      existing.totalSpent += o.totalAmount;
-      existing.orderCount += 1;
-    } else {
-      customerMap.set(key, {
-        name: o.customerName,
-        email: o.email,
-        phone: o.phone,
-        address: o.deliveryAddress,
-        totalSpent: o.totalAmount,
-        orderCount: 1,
+  // Cloudinary Upload State
+  const [newProductImgUrl, setNewProductImgUrl] = useState("");
+  const [editProductImgUrl, setEditProductImgUrl] = useState("");
+  
+  // New Showroom State
+  const [selectedShowroomCategory, setSelectedShowroomCategory] = useState("graphics");
+  const [pfImgBefore, setPfImgBefore] = useState("");
+  const [pfImgAfter, setPfImgAfter] = useState("");
+  const [pfVideoUrl, setPfVideoUrl] = useState("");
+
+  // Edit Showroom State
+  const [editPfImgBefore, setEditPfImgBefore] = useState("");
+  const [editPfImgAfter, setEditPfImgAfter] = useState("");
+  const [editPfVideoUrl, setEditPfVideoUrl] = useState("");
+
+  // Orders Filter Logic
+  const filteredOrders = orders.filter((order) => {
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !query ||
+      order.customerName.toLowerCase().includes(query) ||
+      order.phone.includes(query) ||
+      order.email.toLowerCase().includes(query) ||
+      order.id.toLowerCase().includes(query);
+
+    if (!matchesSearch) return false;
+
+    if (feedCategory === "MASTER") return true;
+
+    if (feedCategory === "MOMO") {
+      return order.items.some((it) => {
+        const title = it.title.toLowerCase();
+        const cat = String(it.customData?.category || "").toLowerCase();
+        return title.includes("momo") || cat === "momo" || title.includes("agency banking");
       });
     }
-  });
-  const customersList = Array.from(customerMap.values());
 
-  // Export CSV Ledger Action
-  const exportCSVLedger = () => {
-    const headers = "Order ID,Customer,Phone,Payment Method,Total Amount (GHS),Address\n";
-    const rows = orders.map(o => `"#${o.id.slice(0,8)}","${o.customerName}","${o.phone}","${o.paymentMethod}",${o.totalAmount},"${o.deliveryAddress}"`).join("\n");
-    const blob = new Blob([headers + rows], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `CAL_Ventures_Order_Ledger_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+    if (feedCategory === "BANKING") {
+      return order.items.some((it) => {
+        const title = it.title.toLowerCase();
+        const cat = String(it.customData?.category || "").toLowerCase();
+        return title.includes("bank") || cat === "banking" || title.includes("deposit");
+      });
+    }
+
+    if (feedCategory === "CHECKER") {
+      return order.items.some((it) => {
+        const title = it.title.toLowerCase();
+        const cat = String(it.customData?.category || "").toUpperCase();
+        return title.includes("checker") || title.includes("waec") || cat === "CHECKER";
+      });
+    }
+
+    if (feedCategory === "PRODUCT") {
+      return order.items.some((it) => {
+        const title = it.title.toLowerCase();
+        const cat = String(it.customData?.category || "").toLowerCase();
+        const isService = cat === "momo" || cat === "banking" || cat === "checker";
+        return !isService || title.includes("charger") || title.includes("jersey") || Boolean(it.customData?.teamName);
+      });
+    }
+
+    return true;
+  });
+
+  // Client Analytics Math
+  const totalGrossRevenue = orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+  const totalPaidOrders = orders.length;
+  const avgOrderValue = totalPaidOrders > 0 ? totalGrossRevenue / totalPaidOrders : 0;
+  const uniqueCustomersCount = new Set(orders.map((o) => o.phone)).size;
+
+  // CSV Export Handler
+  const exportToCSV = () => {
+    const headers = ["Order Ref,Customer Name,Phone,Email,Payment Method,Total Charged (GHS),Address"];
+    const rows = orders.map((o) => 
+      `"${o.id.slice(0, 8)}","${o.customerName}","${o.phone}","${o.email}","${o.paymentMethod}",${o.totalAmount},"${o.deliveryAddress.replace(/"/g, '""')}"`
+    );
+    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `CAL_VENTURES_ORDERS_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const sendReceiptNotification = (order: OrderMapped) => {
-    const itemSummary = order.items.map(i => `${i.title} (x${i.quantity})`).join(", ");
-    const operationalMessage = `Hello ${order.customerName}, Constant A. Liberty Ventures has confirmed your order for [${itemSummary}]. Payment: ${order.paymentMethod.toUpperCase()}. Delivery: ${order.deliveryAddress}. Dispatch duration: 24-48 hrs. Thank you!`;
-    window.open(`https://wa.me/${order.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(operationalMessage)}`, "_blank");
+  // Terminate Session Handler
+  const handleLogout = () => {
+    document.cookie = "admin_session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    window.location.reload();
+  };
+
+  // CREATE PRODUCT HANDLER
+  const handleCreateProduct = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+
+    const payload = {
+      title: String(formData.get("title") || "").trim(),
+      description: String(formData.get("description") || "").trim(),
+      price: Number(formData.get("price")),
+      stockQuantity: Number(formData.get("stockQuantity")),
+      category: String(formData.get("category")),
+      imageUrl: newProductImgUrl || "/bg-evening.jpeg",
+    };
+
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Create Product Error:", errorText);
+        alert("Failed to save product to database.");
+        return;
+      }
+
+      const data = await res.json();
+      setLocalProducts((prev) => [data.product || { ...payload, id: `prod-${Date.now()}` }, ...prev]);
+      setIsAddProductOpen(false);
+      setNewProductImgUrl("");
+      router.refresh();
+    } catch (err) {
+      console.error("CREATE_PRODUCT_ERROR:", err);
+      alert("Error submitting product data.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // EDIT PRODUCT HANDLER
+  const handleUpdateProduct = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+
+    const payload = {
+      title: String(formData.get("title") || "").trim(),
+      description: String(formData.get("description") || "").trim(),
+      price: Number(formData.get("price")),
+      stockQuantity: Number(formData.get("stockQuantity")),
+      category: String(formData.get("category")),
+      imageUrl: editProductImgUrl || editingProduct.imageUrl,
+    };
+
+    try {
+      const res = await fetch(`/api/products/${editingProduct.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        alert("Failed to update product.");
+        return;
+      }
+
+      setLocalProducts((prev) =>
+        prev.map((p) => (p.id === editingProduct.id ? { ...p, ...payload } : p))
+      );
+      setEditingProduct(null);
+      setEditProductImgUrl("");
+      router.refresh();
+    } catch (err) {
+      console.error("UPDATE_PRODUCT_ERROR:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // CREATE SHOWROOM ITEM HANDLER
+  const handleCreatePortfolio = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+
+    const payload = {
+      title: String(formData.get("title") || "").trim(),
+      category: selectedShowroomCategory,
+      description: String(formData.get("description") || "").trim(),
+      imageUrlBefore: pfImgBefore || undefined,
+      imageUrlAfter: pfImgAfter || undefined,
+      videoUrl: pfVideoUrl || undefined,
+    };
+
+    try {
+      const res = await fetch("/api/portfolio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Create Portfolio Error:", errorText);
+        alert("Failed to add showroom item.");
+        return;
+      }
+
+      const data = await res.json();
+      setLocalPortfolio((prev) => [data.item || { ...payload, id: `pf-${Date.now()}` }, ...prev]);
+      setIsAddPortfolioOpen(false);
+      setPfImgBefore("");
+      setPfImgAfter("");
+      setPfVideoUrl("");
+      router.refresh();
+    } catch (err) {
+      console.error("CREATE_PORTFOLIO_ERROR:", err);
+      alert("Error adding showroom item.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // EDIT SHOWROOM ITEM HANDLER
+  const handleUpdatePortfolio = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingPortfolio) return;
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+
+    const payload = {
+      title: String(formData.get("title") || "").trim(),
+      category: String(formData.get("category") || editingPortfolio.category),
+      description: String(formData.get("description") || "").trim(),
+      imageUrlBefore: editPfImgBefore || editingPortfolio.imageUrlBefore || undefined,
+      imageUrlAfter: editPfImgAfter || editingPortfolio.imageUrlAfter || undefined,
+      videoUrl: editPfVideoUrl || editingPortfolio.videoUrl || undefined,
+    };
+
+    try {
+      const res = await fetch(`/api/portfolio/${editingPortfolio.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        alert("Failed to update showroom entry.");
+        return;
+      }
+
+      setLocalPortfolio((prev) =>
+        prev.map((item) => (item.id === editingPortfolio.id ? { ...item, ...payload } : item))
+      );
+      setEditingPortfolio(null);
+      router.refresh();
+    } catch (err) {
+      console.error("UPDATE_PORTFOLIO_ERROR:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // DELETE SHOWROOM ITEM HANDLER
+  const handleDeletePortfolio = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this showroom post permanently?")) return;
+
+    try {
+      const res = await fetch(`/api/portfolio/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setLocalPortfolio((prev) => prev.filter((item) => item.id !== id));
+        router.refresh();
+      } else {
+        alert("Failed to delete showroom entry.");
+      }
+    } catch (err) {
+      console.error("DELETE_PORTFOLIO_ERROR:", err);
+      alert("Error deleting item.");
+    }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 text-white min-h-[80vh]">
-      
-      {/* EXPANDED SIDEBAR NAVIGATION (NODES 1 TO 5 INTEGRATED) */}
-      <aside className="w-full lg:w-72 bg-black/40 backdrop-blur-2xl border border-white/[0.06] rounded-3xl p-5 flex flex-col gap-1.5 shrink-0">
-        <p className="text-[9px] font-black uppercase text-[#D4AF37] tracking-[0.2em] px-3 mb-2">Core Operations</p>
-        
-        <button 
-          onClick={() => setActiveTab("orders")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "orders" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <ClipboardList className="w-4 h-4 text-[#D4AF37]" />
-          Orders Feed ({orders.length})
-        </button>
-        
-        <button 
-          onClick={() => setActiveTab("inventory")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "inventory" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <Package className="w-4 h-4 text-[#D4AF37]" />
-          Store Catalog ({products.length})
-        </button>
-        
-        <button 
-          onClick={() => setActiveTab("showroom")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "showroom" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <ImageIcon className="w-4 h-4 text-[#D4AF37]" />
-          Showroom ({portfolio.length})
-        </button>
+    <div className="grid lg:grid-cols-12 gap-8">
+      {/* LEFT SIDEBAR NAVIGATION */}
+      <aside className="lg:col-span-3 space-y-6">
+        <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 space-y-6 shadow-2xl flex flex-col justify-between min-h-[80vh]">
+          <div className="space-y-6">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Core Operations</p>
+              <nav className="mt-3 space-y-2">
+                <button
+                  onClick={() => setActiveMainTab("ORDERS")}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-black uppercase transition ${
+                    activeMainTab === "ORDERS"
+                      ? "bg-white text-[#002147] shadow-xl"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Package className="w-4 h-4" />
+                    <span>Orders Feed</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/10">
+                    {orders.length}
+                  </span>
+                </button>
 
-        <p className="text-[9px] font-black uppercase text-[#D4AF37] tracking-[0.2em] px-3 mt-4 mb-2">Management Suite</p>
+                <button
+                  onClick={() => setActiveMainTab("CATALOG")}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-black uppercase transition ${
+                    activeMainTab === "CATALOG"
+                      ? "bg-white text-[#002147] shadow-xl"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Grid className="w-4 h-4" />
+                    <span>Store Catalog</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/10">
+                    {localProducts.length}
+                  </span>
+                </button>
 
-        {/* NODE 1: FINANCIAL ANALYTICS */}
-        <button 
-          onClick={() => setActiveTab("analytics")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "analytics" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <BarChart3 className="w-4 h-4 text-green-400" />
-          Analytics & Ledger
-        </button>
+                <button
+                  onClick={() => setActiveMainTab("SHOWROOM")}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-black uppercase transition ${
+                    activeMainTab === "SHOWROOM"
+                      ? "bg-white text-[#002147] shadow-xl"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Showroom</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/10">
+                    {localPortfolio.length}
+                  </span>
+                </button>
+              </nav>
+            </div>
 
-        {/* NODE 2: SERVICE WORKFLOW QUEUE */}
-        <button 
-          onClick={() => setActiveTab("service-queue")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "service-queue" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <Layers className="w-4 h-4 text-purple-400" />
-          Service Workflow
-        </button>
+            <div className="border-t border-white/[0.06] pt-6">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Management Suite</p>
+              <nav className="mt-3 space-y-2">
+                <button
+                  onClick={() => setActiveMainTab("ANALYTICS")}
+                  className={`w-full flex items-center gap-2.5 p-3.5 rounded-2xl text-xs font-black uppercase transition ${
+                    activeMainTab === "ANALYTICS"
+                      ? "bg-white text-[#002147] shadow-xl"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Analytics & Ledger</span>
+                </button>
 
-        {/* NODE 3: PAYSTACK GATEWAY SWITCH */}
-        <button 
-          onClick={() => setActiveTab("gateway")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "gateway" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <CreditCard className="w-4 h-4 text-blue-400" />
-          Paystack Gateway
-        </button>
+                <button
+                  onClick={() => setActiveMainTab("PAYSTACK")}
+                  className={`w-full flex items-center gap-2.5 p-3.5 rounded-2xl text-xs font-black uppercase transition ${
+                    activeMainTab === "PAYSTACK"
+                      ? "bg-white text-[#002147] shadow-xl"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Paystack Gateway</span>
+                </button>
 
-        {/* NODE 4: CRM DIRECTORY */}
-        <button 
-          onClick={() => setActiveTab("crm")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "crm" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <Users className="w-4 h-4 text-[#D4AF37]" />
-          CRM Directory ({customersList.length})
-        </button>
+                <button
+                  onClick={() => setActiveMainTab("CRM")}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-black uppercase transition ${
+                    activeMainTab === "CRM"
+                      ? "bg-white text-[#002147] shadow-xl"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Users className="w-4 h-4" />
+                    <span>CRM Directory</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/10">
+                    {uniqueCustomersCount}
+                  </span>
+                </button>
 
-        {/* NODE 5: SYSTEM SETTINGS */}
-        <button 
-          onClick={() => setActiveTab("settings")} 
-          className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition ${activeTab === "settings" ? "bg-white text-[#002147] shadow-xl" : "hover:bg-white/[0.04] text-slate-400 hover:text-white"}`}
-        >
-          <Settings className="w-4 h-4 text-slate-400" />
-          Terminal Settings
-        </button>
-        
-        <div className="mt-auto pt-4 border-t border-white/[0.05]">
-          <button 
-            onClick={async () => { if(confirm("Terminate admin session?")) await logoutAdmin(); }} 
-            className="w-full text-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2"
-          >
-            <LogOut className="w-3 h-3" />
-            Terminate Session
-          </button>
+                <button
+                  onClick={() => setActiveMainTab("SETTINGS")}
+                  className={`w-full flex items-center gap-2.5 p-3.5 rounded-2xl text-xs font-black uppercase transition ${
+                    activeMainTab === "SETTINGS"
+                      ? "bg-white text-[#002147] shadow-xl"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Terminal Settings</span>
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          <div className="border-t border-white/[0.06] pt-6">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-black text-xs uppercase p-3.5 rounded-2xl transition"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Terminate Session</span>
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* DYNAMIC WORKSPACE PANEL */}
-      <main className="flex-1 bg-black/20 border border-white/[0.04] rounded-3xl p-6 min-h-[60vh] space-y-6">
-        
-        {/* ==================== 1. ORDERS FEED ==================== */}
-        {activeTab === "orders" && (
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-white/[0.02] p-3 rounded-2xl border border-white/[0.05]">
-              <div className="flex flex-wrap gap-1.5">
-                {["all", "momo", "banking", "checker", "product"].map(sub => (
-                  <button key={sub} onClick={() => setOrderCategory(sub)} className={`px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition ${orderCategory === sub ? "bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147]" : "text-slate-400 hover:text-white"}`}>
-                    {sub === "all" ? "Master Feed" : sub}
+      {/* RIGHT MAIN TERMINAL VIEW */}
+      <main className="lg:col-span-9 space-y-6">
+        {/* TAB 1: ORDERS FEED */}
+        {activeMainTab === "ORDERS" && (
+          <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 lg:p-8 space-y-6 shadow-2xl">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 border-b border-white/[0.06] pb-6">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0">
+                {(["MASTER", "MOMO", "BANKING", "CHECKER", "PRODUCT"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setFeedCategory(tab)}
+                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition ${
+                      feedCategory === tab
+                        ? "bg-[#D4AF37] text-[#002147] shadow-lg"
+                        : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {tab === "MASTER" ? "MASTER FEED" : tab}
                   </button>
                 ))}
               </div>
 
-              <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  type="text" 
+              <div className="relative min-w-[260px]">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search orders, phone, ref..." 
-                  className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="Search orders, phone, ref..."
+                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#D4AF37]"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
-            {orders.length === 0 ? (
-              <p className="text-xs font-black uppercase text-slate-500 tracking-wider py-12 text-center">No order records recorded in system database.</p>
+            {filteredOrders.length === 0 ? (
+              <div className="text-center py-24 border border-dashed border-white/10 rounded-3xl space-y-3">
+                <Package className="w-10 h-10 text-slate-500 mx-auto" />
+                <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                  No orders match the [{feedCategory}] category {searchQuery ? `with query "${searchQuery}"` : ""}.
+                </p>
+              </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-5">
-                {orders.map((order) => (
-                  <div key={order.id} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 flex flex-col justify-between space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center text-[9px] font-mono text-slate-500">
-                        <span>REF: #{order.id.slice(0,8)}</span>
-                        <button onClick={async () => { if(confirm("Archive order?")) await clearProcessedOrder(order.id); }} className="text-red-400 hover:text-red-500 font-bold uppercase">[ Archive ]</button>
-                      </div>
-
-                      <div className="bg-black/30 p-3.5 rounded-xl border border-white/[0.03] space-y-2">
-                        <div className="flex justify-between items-start">
-                          <h4 className="text-sm font-black uppercase text-white tracking-tight">{order.customerName}</h4>
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded border uppercase tracking-wider bg-blue-500/10 text-blue-400 border-blue-500/20">
-                            {order.paymentMethod}
+              <div className="space-y-6">
+                {filteredOrders.map((ord) => (
+                  <div
+                    key={ord.id}
+                    className="bg-black/60 border border-white/10 rounded-3xl p-6 space-y-5 hover:border-white/20 transition shadow-xl"
+                  >
+                    <div className="flex flex-wrap justify-between items-start gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-slate-500 uppercase">
+                            REF: #{ord.id.slice(0, 8)}
+                          </span>
+                          <span className="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                            {ord.paymentMethod}
                           </span>
                         </div>
-
-                        <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#D4AF37]">
-                          <Phone className="w-3 h-3 text-[#D4AF37]" />
-                          <span>{order.phone}</span>
-                        </div>
-
-                        {order.email && (
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                            <Mail className="w-3 h-3 text-slate-500" />
-                            <span>{order.email}</span>
-                          </div>
-                        )}
-
-                        <div className="flex items-start gap-2 text-[10px] text-slate-300 pt-1.5 border-t border-white/5">
-                          <MapPin className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                          <span>{order.deliveryAddress}</span>
-                        </div>
+                        <h3 className="text-base font-black uppercase text-white mt-1.5">{ord.customerName}</h3>
+                        <p className="text-xs font-mono text-[#D4AF37] mt-0.5">
+                          {ord.phone} • {ord.email}
+                        </p>
+                        <p className="text-[11px] text-slate-300 mt-1">{ord.deliveryAddress}</p>
                       </div>
 
-                      <div className="space-y-2 pt-1">
-                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Order Items</p>
-                        {order.items.map((it, idx) => (
-                          <div key={idx} className="bg-black/40 p-2.5 rounded-xl border border-white/[0.04] flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 overflow-hidden flex-shrink-0">
-                              <img src={it.imageUrl || "/bg-evening.jpeg"} alt={it.title} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h5 className="text-xs font-black uppercase text-slate-200 truncate">{it.title}</h5>
-                              <p className="text-[10px] text-[#D4AF37] font-mono font-bold">GH₵ {it.price.toFixed(2)}</p>
-                            </div>
-                            <span className="text-xs font-black text-white px-2 py-1 bg-white/10 rounded-lg">x{it.quantity}</span>
-                          </div>
-                        ))}
+                      <div className="text-right">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                          Total Charged
+                        </span>
+                        <span className="text-xl font-mono font-black text-[#D4AF37]">
+                          GH₵ {Number(ord.totalAmount).toFixed(2)}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-white/[0.05] flex justify-between items-center">
-                      <div>
-                        <p className="text-[8px] font-black uppercase text-slate-400">Total Charged</p>
-                        <span className="font-mono font-black text-sm text-white">GH₵ {order.totalAmount.toFixed(2)}</span>
-                      </div>
-                      <button onClick={() => sendReceiptNotification(order)} className="bg-white text-[#002147] font-black text-[9px] uppercase tracking-widest px-3 py-2.5 rounded-xl hover:bg-[#D4AF37] transition flex items-center gap-1.5">
-                        <CheckCircle className="w-3.5 h-3.5" /> WhatsApp Dispatch
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ==================== 2. STORE INVENTORY TAB ==================== */}
-        {activeTab === "inventory" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center flex-wrap gap-4 border-b border-white/[0.06] pb-4">
-              <div className="flex gap-2">
-                <button onClick={() => setInventorySubTab("list")} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition ${inventorySubTab === "list" ? "bg-[#D4AF37] text-[#002147]" : "bg-white/5 text-slate-400 hover:text-white"}`}>
-                  <ListFilter className="w-3.5 h-3.5" /> Manage Catalog ({products.length})
-                </button>
-                <button onClick={() => setInventorySubTab("add")} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition ${inventorySubTab === "add" ? "bg-[#D4AF37] text-[#002147]" : "bg-white/5 text-slate-400 hover:text-white"}`}>
-                  <PlusCircle className="w-3.5 h-3.5" /> Publish New Product
-                </button>
-              </div>
-            </div>
-
-            {inventorySubTab === "list" && (
-              <div className="grid gap-3">
-                {products.map((p) => {
-                  const isOutOfStock = p.stockQuantity === 0;
-                  return (
-                    <div key={p.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition ${isOutOfStock ? "bg-red-500/5 border-red-500/20" : "bg-white/[0.02] border-white/[0.06]"}`}>
-                      <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <div className="w-14 h-14 rounded-xl bg-black/40 border border-white/10 overflow-hidden flex-shrink-0">
-                          <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0 space-y-1">
-                          <h4 className="text-sm font-black uppercase text-white truncate">{p.title}</h4>
+                    <div className="border-t border-white/5 pt-4 space-y-2.5">
+                      <p className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Order Items Payload
+                      </p>
+                      {ord.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-wrap justify-between items-center gap-4 text-xs"
+                        >
                           <div className="flex items-center gap-3">
-                            <span className="text-xs font-mono font-bold text-[#D4AF37]">GH₵ {p.price.toFixed(2)}</span>
-                            <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/5">{p.category}</span>
+                            {item.imageUrl && (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.title}
+                                className="w-12 h-12 object-cover rounded-xl bg-black border border-white/10"
+                              />
+                            )}
+                            <div>
+                              <p className="font-bold text-white uppercase">{item.title}</p>
+                              {item.customData && (
+                                <div className="text-[10px] text-slate-400 font-mono mt-1 space-x-2">
+                                  {Object.entries(item.customData).map(([k, v]) => (
+                                    <span key={k} className="bg-black/30 px-2 py-0.5 rounded border border-white/5">
+                                      <strong className="text-slate-300 uppercase">{k}:</strong> {String(v)}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
+                          <span className="font-mono font-bold text-[#D4AF37]">
+                            GH₵ {Number(item.price).toFixed(2)} x {item.quantity}
+                          </span>
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 shrink-0">
-                        <button onClick={async () => await toggleStockStatus(p.id, p.stockQuantity)} className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border transition ${isOutOfStock ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/10 text-green-400 border-green-500/20"}`}>
-                          {isOutOfStock ? "❌ Out of Stock" : `✓ In Stock (${p.stockQuantity})`}
-                        </button>
-                        <button onClick={() => { setEditingProduct(p); setEditProductImgUrl(p.imageUrl); }} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"><Edit className="w-4 h-4" /></button>
-                        <button onClick={async () => { if(confirm(`Delete "${p.title}"?`)) await deleteProduct(p.id); }} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition"><Trash2 className="w-4 h-4" /></button>
-                      </div>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
-            )}
 
-            {inventorySubTab === "add" && (
-              <div className="max-w-xl space-y-4">
-                <h3 className="font-black text-xs uppercase text-[#D4AF37] tracking-wider mb-2">Publish Store Product Asset</h3>
-                <form action={async (fd) => {
-                  if(!productImgUrl) { alert("Product image asset is required."); return; }
-                  fd.append("imageUrls", productImgUrl);
-                  const res = await uploadProduct(fd);
-                  if (res.success) { alert("Asset published live!"); setProductImgUrl(""); setInventorySubTab("list"); } else { alert(res.error); }
-                }} className="space-y-4">
-                  <input type="text" name="title" placeholder="Product Title" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none focus:border-[#D4AF37]" required />
-                  <textarea name="description" placeholder="Specifications details..." rows={3} className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-medium text-white focus:outline-none focus:border-[#D4AF37]" required />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="number" step="0.01" name="price" placeholder="Price (GH₵)" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-mono font-bold text-white focus:outline-none" required />
-                    <input type="number" name="stockQuantity" defaultValue={10} placeholder="Stock Qty" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-mono font-bold text-white focus:outline-none" required />
-                  </div>
-                  <select name="category" className="w-full bg-[#001a35] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none">
-                    <option value="hardware">Phones & Devices</option>
-                    <option value="electronics">Accessories & Chargers</option>
-                    <option value="acoustics">Sound Systems</option>
-                    <option value="lighting">LED Lighting System</option>
-                    <option value="apparel">Custom Jerseys</option>
-                  </select>
-                  <CldUploader acceptType="image" label={productImgUrl ? "✓ Product Image Uploaded" : "Upload Product Image"} onUploadSuccess={(url: string) => setProductImgUrl(url)} />
-                  <button type="submit" className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl">Save Asset Live To Store Catalog</button>
-                </form>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ==================== 3. SHOWROOM GALLERY ==================== */}
-        {activeTab === "showroom" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center flex-wrap gap-4 border-b border-white/[0.06] pb-4">
-              <div className="flex gap-2">
-                <button onClick={() => setShowroomSubTab("list")} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition ${showroomSubTab === "list" ? "bg-[#D4AF37] text-[#002147]" : "bg-white/5 text-slate-400 hover:text-white"}`}>
-                  <FolderKanban className="w-3.5 h-3.5" /> Showroom Gallery ({portfolio.length})
-                </button>
-                <button onClick={() => setShowroomSubTab("add")} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition ${showroomSubTab === "add" ? "bg-[#D4AF37] text-[#002147]" : "bg-white/5 text-slate-400 hover:text-white"}`}>
-                  <PlusCircle className="w-3.5 h-3.5" /> Upload Portfolio Project
-                </button>
-              </div>
-            </div>
-
-            {showroomSubTab === "list" && (
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {portfolio.map((item) => (
-                  <div key={item.id} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-3 flex flex-col justify-between space-y-3">
-                    <div className="space-y-2">
-                      <div className="h-36 rounded-xl bg-black/40 overflow-hidden relative border border-white/10">
-                        {item.videoUrl ? (
-                          <video src={item.videoUrl} className="w-full h-full object-cover" controls={false} />
-                        ) : (
-                          <img src={item.imageUrlAfter || item.imageUrlBefore || "/bg-evening.jpeg"} alt={item.title} className="w-full h-full object-cover" />
-                        )}
-                        <span className="absolute top-2 left-2 text-[8px] font-black uppercase px-2 py-0.5 rounded bg-black/80 text-[#D4AF37]">{item.category}</span>
-                      </div>
-                      <h4 className="text-xs font-black uppercase text-white truncate">{item.title}</h4>
-                      <p className="text-[10px] text-slate-400 line-clamp-2">{item.description}</p>
-                    </div>
-                    <div className="pt-2 border-t border-white/5 flex justify-end">
-                      <button onClick={async () => { if(confirm(`Remove "${item.title}"?`)) await deletePortfolioItem(item.id); }} className="text-[9px] font-black text-red-400 hover:text-red-500 flex items-center gap-1 uppercase">
-                        <Trash2 className="w-3 h-3" /> Remove Asset
-                      </button>
+                    <div className="pt-2 flex justify-end">
+                      <a
+                        href={`https://wa.me/233${ord.phone.replace(/^0/, "")}?text=Hello%20${encodeURIComponent(
+                          ord.customerName
+                        )},%20your%20Constant%20A.%20Liberty%20order%20%23${ord.id.slice(0, 8)}%20is%20being%20processed!`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-white hover:bg-[#D4AF37] text-[#002147] font-black text-[10px] uppercase px-5 py-3 rounded-xl transition flex items-center gap-2 shadow-lg"
+                      >
+                        <MessageCircle className="w-4 h-4" /> WhatsApp Dispatch
+                      </a>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-
-            {showroomSubTab === "add" && (
-              <div className="max-w-xl space-y-4">
-                <h3 className="font-black text-xs uppercase text-[#D4AF37] tracking-wider mb-2">Publish Portfolio Item</h3>
-                <form action={async (fd) => {
-                  fd.append("category", showroomFormCategory);
-                  if (showroomFormCategory === "graphics") {
-                    if(!showroomAfterUrl) { alert("Design layout file is required."); return; }
-                    fd.append("imageUrlAfter", showroomAfterUrl);
-                  } else if (showroomFormCategory === "video") {
-                    if(!showroomVideoUrl) { alert("Video file is required."); return; }
-                    fd.append("videoUrl", showroomVideoUrl);
-                    fd.append("imageUrlAfter", "/video-placeholder.jpg");
-                  } else if (showroomFormCategory === "stickers") {
-                    if(!showroomBeforeUrl || !showroomAfterUrl) { alert("Both Before and After images required."); return; }
-                    fd.append("imageUrlBefore", showroomBeforeUrl);
-                    fd.append("imageUrlAfter", showroomAfterUrl);
-                  }
-                  const res = await uploadPortfolioItem(fd);
-                  if (res.success) { alert("Published!"); setShowroomSubTab("list"); } else { alert(res.error); }
-                }} className="space-y-4">
-                  <input type="text" name="title" placeholder="Project Title" className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white focus:outline-none" required />
-                  <textarea name="description" placeholder="Concept summary..." rows={2} className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl p-3 text-xs text-white focus:outline-none" required />
-                  <select value={showroomFormCategory} onChange={(e) => setShowroomFormCategory(e.target.value)} className="w-full bg-[#001a35] border border-white/[0.1] rounded-xl p-3 text-xs font-bold text-white">
-                    <option value="graphics">Graphic Design</option>
-                    <option value="video">Video Editing</option>
-                    <option value="stickers">Laptop Skins Wrap</option>
-                  </select>
-                  <div className="space-y-3 pt-2">
-                    {showroomFormCategory === "graphics" && <CldUploader acceptType="image" label={showroomAfterUrl ? "✓ Image Loaded" : "Upload Image"} onUploadSuccess={(url: string) => setShowroomAfterUrl(url)} />}
-                    {showroomFormCategory === "video" && <CldUploader acceptType="video" label={showroomVideoUrl ? "✓ Video Loaded" : "Upload Video"} onUploadSuccess={(url: string) => setShowroomVideoUrl(url)} />}
-                    {showroomFormCategory === "stickers" && (
-                      <div className="grid gap-3">
-                        <CldUploader acceptType="image" label={showroomBeforeUrl ? "✓ Before Image Loaded" : "Upload Before Image"} onUploadSuccess={(url: string) => setShowroomBeforeUrl(url)} />
-                        <CldUploader acceptType="image" label={showroomAfterUrl ? "✓ After Image Loaded" : "Upload After Image"} onUploadSuccess={(url: string) => setShowroomAfterUrl(url)} />
-                      </div>
-                    )}
-                  </div>
-                  <button type="submit" className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-widest py-3.5 rounded-xl mt-4">Save Staged Design Asset</button>
-                </form>
-              </div>
-            )}
           </div>
         )}
 
-        {/* ==================== NODE 1: FINANCIAL ANALYTICS & LEDGER ==================== */}
-        {activeTab === "analytics" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center border-b border-white/[0.06] pb-4">
+        {/* TAB 2: STORE CATALOG */}
+        {activeMainTab === "CATALOG" && (
+          <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 lg:p-8 space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-white/[0.06] pb-6">
               <div>
-                <h3 className="text-sm font-black uppercase text-white tracking-wider">Financial Analytics & Revenue Ledger</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Comprehensive audit breakdown of all store income channels</p>
+                <h2 className="text-lg font-black uppercase text-white">Product Catalog Inventory</h2>
+                <p className="text-xs text-slate-400">Manage active store inventory and pricing.</p>
               </div>
-              <button onClick={exportCSVLedger} className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 transition">
-                <Download className="w-4 h-4" /> Export CSV Ledger
+              <button
+                onClick={() => setIsAddProductOpen(true)}
+                className="bg-[#D4AF37] text-[#002147] font-black text-xs uppercase px-5 py-3 rounded-xl flex items-center gap-2 hover:opacity-90 transition shadow-lg"
+              >
+                <Plus className="w-4 h-4" /> Add Product
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400">Total Accumulated Gross</p>
-                <h2 className="text-2xl font-mono font-black text-[#D4AF37]">GH₵ {totalRevenue.toFixed(2)}</h2>
-                <p className="text-[10px] text-slate-500 pt-2">From {totalOrdersCount} processed orders</p>
-              </div>
-
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400">Mobile Money / Paystack</p>
-                <h2 className="text-2xl font-mono font-black text-blue-400">GH₵ {totalMomoRevenue.toFixed(2)}</h2>
-                <p className="text-[10px] text-slate-500 pt-2">Instant digital clearance</p>
-              </div>
-
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400">Average Ticket Order Value</p>
-                <h2 className="text-2xl font-mono font-black text-purple-400">GH₵ {avgOrderValue.toFixed(2)}</h2>
-                <p className="text-[10px] text-slate-500 pt-2">Per transaction ratio</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== NODE 2: SERVICE WORKFLOW QUEUE ==================== */}
-        {activeTab === "service-queue" && (
-          <div className="space-y-6">
-            <div className="border-b border-white/[0.06] pb-4">
-              <h3 className="text-sm font-black uppercase text-white tracking-wider">Service Task & Order Workflow</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Track hardware distribution and graphic production queues</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              {["Queue Initialized", "In Production / Assembly", "Dispatched & Closed"].map((stage, idx) => (
-                <div key={stage} className="bg-black/30 border border-white/[0.06] rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                    <span className="text-xs font-black uppercase text-[#D4AF37]">Stage {idx + 1}: {stage}</span>
-                    <span className="text-[10px] font-mono text-slate-500">Node {idx + 1}</span>
+            <div className="grid md:grid-cols-2 gap-4">
+              {localProducts.map((p) => (
+                <div key={p.id} className="bg-black/60 border border-white/10 rounded-2xl p-4 flex gap-4 items-center">
+                  <img src={p.imageUrl} alt={p.title} className="w-20 h-20 object-cover rounded-xl bg-black" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[9px] font-black uppercase px-2.5 py-0.5 bg-white/5 text-[#D4AF37] rounded-full border border-white/10">
+                      {p.category}
+                    </span>
+                    <h4 className="text-xs font-black uppercase text-white truncate mt-1">{p.title}</h4>
+                    {p.description && (
+                      <p className="text-[10px] text-slate-400 truncate">{p.description}</p>
+                    )}
+                    <p className="text-xs font-mono font-bold text-[#D4AF37] mt-1">GH₵ {p.price.toFixed(2)}</p>
+                    <p className="text-[10px] text-slate-400">Stock: {p.stockQuantity} units</p>
                   </div>
-                  <p className="text-[10px] text-slate-400">Tasks in this operational state update status automatically on WhatsApp alert dispatch.</p>
+                  <button
+                    onClick={() => {
+                      setEditingProduct(p);
+                      setEditProductImgUrl(p.imageUrl);
+                    }}
+                    className="p-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl transition"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ==================== NODE 3: PAYSTACK GATEWAY STATUS ==================== */}
-        {activeTab === "gateway" && (
-          <div className="space-y-6">
-            <div className="border-b border-white/[0.06] pb-4">
-              <h3 className="text-sm font-black uppercase text-white tracking-wider">Paystack Integration Terminal</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Monitor and configure Mobile Money and Card payment processing</p>
-            </div>
-
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-6 max-w-xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400"><Zap className="w-5 h-5" /></div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-white">Active Payment Key State</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Configured inside project environment file (.env)</p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 bg-green-500/10 text-green-400 border border-green-500/20 text-[10px] font-black uppercase rounded-full flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Active Test Mode
-                </span>
-              </div>
-
-              <div className="space-y-3 bg-black/40 p-4 rounded-xl border border-white/5 font-mono text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Key Identifier:</span>
-                  <span className="text-slate-200">pk_test_... (Mobile Money / Cards)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Supported Currencies:</span>
-                  <span className="text-[#D4AF37]">GHS (Ghanaian Cedi)</span>
-                </div>
-              </div>
-
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-[10px] text-yellow-300 space-y-1">
-                <p className="font-bold uppercase">To Switch to Live Payments:</p>
-                <p>Replace `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` in your `.env` file with your `pk_live_...` key from dashboard.paystack.com and restart the server (`npm run dev`).</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== NODE 4: CRM DIRECTORY ==================== */}
-        {activeTab === "crm" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center border-b border-white/[0.06] pb-4">
+        {/* TAB 3: SHOWROOM WITH VIEW, EDIT, AND DELETE */}
+        {activeMainTab === "SHOWROOM" && (
+          <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 lg:p-8 space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-white/[0.06] pb-6">
               <div>
-                <h3 className="text-sm font-black uppercase text-white tracking-wider">Customer Relationship Management (CRM)</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Trace past clients, contact details, and lifetime spending</p>
+                <h2 className="text-lg font-black uppercase text-white">Showroom & Portfolio Display</h2>
+                <p className="text-xs text-slate-400">Manage promotional banners, flyers, videos, and laptop skins.</p>
               </div>
-              <span className="text-xs font-mono font-bold text-[#D4AF37]">{customersList.length} Unique Clients</span>
+              <button
+                onClick={() => setIsAddPortfolioOpen(true)}
+                className="bg-[#D4AF37] text-[#002147] font-black text-xs uppercase px-5 py-3 rounded-xl flex items-center gap-2 hover:opacity-90 transition shadow-lg"
+              >
+                <Plus className="w-4 h-4" /> Add Showroom Item
+              </button>
             </div>
 
-            {customersList.length === 0 ? (
-              <p className="text-xs text-slate-500 uppercase tracking-wider py-12 text-center">No customer records in directory yet.</p>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {customersList.map((c, i) => (
-                  <div key={i} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <h4 className="text-xs font-black uppercase text-white">{c.name}</h4>
-                      <span className="text-[9px] font-mono text-[#D4AF37] font-bold">{c.orderCount} Orders</span>
-                    </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {localPortfolio.map((pf) => (
+                <div key={pf.id} className="bg-black/60 border border-white/10 rounded-2xl p-4 space-y-3 relative group">
+                  {pf.imageUrlAfter && (
+                    <img src={pf.imageUrlAfter} alt={pf.title} className="w-full aspect-video object-cover rounded-xl" />
+                  )}
+                  {pf.videoUrl && (
+                    <video src={pf.videoUrl} className="w-full aspect-video rounded-xl bg-black object-cover" />
+                  )}
 
-                    <div className="space-y-1 text-[10px] font-mono text-slate-400">
-                      <div className="flex items-center gap-2"><Phone className="w-3 h-3 text-[#D4AF37]" /><span>{c.phone}</span></div>
-                      {c.email && <div className="flex items-center gap-2"><Mail className="w-3 h-3 text-slate-500" /><span className="truncate">{c.email}</span></div>}
-                      <div className="flex items-start gap-2 pt-1 border-t border-white/5"><MapPin className="w-3 h-3 text-red-400 shrink-0 mt-0.5" /><span className="line-clamp-2">{c.address}</span></div>
-                    </div>
-
-                    <div className="pt-2 border-t border-white/5 flex justify-between items-center">
-                      <span className="text-[9px] text-slate-400 uppercase font-bold">Total Spent: <strong className="text-white font-mono">GH₵ {c.totalSpent.toFixed(2)}</strong></span>
-                      <a href={`https://wa.me/${c.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" className="text-[9px] font-black uppercase text-green-400 hover:underline">WhatsApp</a>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-[9px] font-black uppercase px-2.5 py-0.5 bg-white/5 text-[#D4AF37] rounded-full border border-white/10">
+                      {pf.category === "stickers" ? "Laptop Skin" : pf.category === "video" ? "Video Post" : "Graphic Design"}
+                    </span>
+                    
+                    {/* ACTION BUTTONS (VIEW, EDIT, DELETE) */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setViewingPortfolio(pf)}
+                        className="p-1.5 bg-white/5 hover:bg-white/15 text-slate-300 rounded-lg transition"
+                        title="View Details"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingPortfolio(pf);
+                          setEditPfImgBefore(pf.imageUrlBefore || "");
+                          setEditPfImgAfter(pf.imageUrlAfter || "");
+                          setEditPfVideoUrl(pf.videoUrl || "");
+                        }}
+                        className="p-1.5 bg-white/5 hover:bg-white/15 text-[#D4AF37] rounded-lg transition"
+                        title="Edit Post"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePortfolio(pf.id)}
+                        className="p-1.5 bg-red-500/10 hover:bg-red-500/25 text-red-400 rounded-lg transition"
+                        title="Delete Post"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* ==================== NODE 5: TERMINAL SETTINGS ==================== */}
-        {activeTab === "settings" && (
-          <div className="space-y-6">
-            <div className="border-b border-white/[0.06] pb-4">
-              <h3 className="text-sm font-black uppercase text-white tracking-wider">Terminal Diagnostics & Passkey Settings</h3>
-              <p className="text-xs text-slate-400 mt-0.5">System security controls and database sync verification</p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-5 h-5 text-[#D4AF37]" />
-                  <h4 className="text-xs font-black uppercase text-white">Admin Authentication Token</h4>
+                  <h4 className="text-xs font-black uppercase text-white truncate">{pf.title}</h4>
+                  <p className="text-[10px] text-slate-400 line-clamp-2">{pf.description}</p>
                 </div>
-                <p className="text-[10px] text-slate-400">Protected using HTTP-only encrypted session cookies and NextAuth environment secrets.</p>
-                <div className="p-3 bg-black/40 rounded-xl border border-white/5 font-mono text-[10px] text-slate-300">
-                  Status: AUTHENTICATED_ADMIN_SESSION
-                </div>
-              </div>
-
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <Activity className="w-5 h-5 text-green-400" />
-                  <h4 className="text-xs font-black uppercase text-white">XAMPP Database Sync Status</h4>
-                </div>
-                <p className="text-[10px] text-slate-400">Connected to local MySQL database instance via Prisma ORM connection string.</p>
-                <div className="p-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl font-mono text-[10px]">
-                  Database: cal_web_db (Port 3306) - ONLINE
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
 
+        {/* TAB 4: ANALYTICS & LEDGER */}
+        {activeMainTab === "ANALYTICS" && (
+          <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 lg:p-8 space-y-8 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-white/[0.06] pb-6">
+              <div>
+                <h2 className="text-lg font-black uppercase text-white">Financial Ledger & Revenue</h2>
+                <p className="text-xs text-slate-400">Real-time breakdown of store sales performance.</p>
+              </div>
+              <button
+                onClick={exportToCSV}
+                className="bg-white/10 hover:bg-white/20 text-white font-black text-xs uppercase px-4 py-2.5 rounded-xl flex items-center gap-2 transition border border-white/10"
+              >
+                <Download className="w-4 h-4" /> Export CSV Ledger
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-black/60 border border-white/10 rounded-3xl p-6 space-y-2">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wider">Total Gross Volume</span>
+                  <DollarSign className="w-4 h-4 text-[#D4AF37]" />
+                </div>
+                <p className="text-2xl font-mono font-black text-[#D4AF37]">GH₵ {totalGrossRevenue.toFixed(2)}</p>
+                <p className="text-[10px] text-slate-400">Cumulative sales across all modes</p>
+              </div>
+
+              <div className="bg-black/60 border border-white/10 rounded-3xl p-6 space-y-2">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wider">Total Paid Orders</span>
+                  <ShoppingBag className="w-4 h-4 text-green-400" />
+                </div>
+                <p className="text-2xl font-mono font-black text-white">{totalPaidOrders}</p>
+                <p className="text-[10px] text-slate-400">Cleared transactions processed</p>
+              </div>
+
+              <div className="bg-black/60 border border-white/10 rounded-3xl p-6 space-y-2">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wider">Average Order Value</span>
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                </div>
+                <p className="text-2xl font-mono font-black text-white">GH₵ {avgOrderValue.toFixed(2)}</p>
+                <p className="text-[10px] text-slate-400">Average spent per basket</p>
+              </div>
+            </div>
+
+            <div className="bg-black/60 border border-white/10 rounded-3xl p-6 space-y-4">
+              <h3 className="text-xs font-black uppercase text-white tracking-wider">Revenue Breakdown Chart</h3>
+              <div className="space-y-3 pt-2">
+                {orders.map((o) => {
+                  const percentage = totalGrossRevenue > 0 ? (o.totalAmount / totalGrossRevenue) * 100 : 0;
+                  return (
+                    <div key={o.id} className="space-y-1">
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-slate-300 font-bold uppercase">{o.customerName} (#{o.id.slice(0, 6)})</span>
+                        <span className="text-[#D4AF37] font-black">GH₵ {o.totalAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] rounded-full transition-all duration-500"
+                          style={{ width: `${Math.max(percentage, 5)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PAYSTACK GATEWAY */}
+        {activeMainTab === "PAYSTACK" && (
+          <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 lg:p-8 space-y-6 shadow-2xl">
+            <h2 className="text-lg font-black uppercase text-white border-b border-white/[0.06] pb-4">Paystack Gateway Status</h2>
+            <div className="bg-black/60 border border-white/10 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center gap-3 text-green-400 text-xs font-bold uppercase">
+                <CheckCircle2 className="w-5 h-5" /> Online Payment Terminal Live
+              </div>
+              <p className="text-xs text-slate-300">
+                All card and MoMo settlements are routed through automated Paystack gateway protection.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* CRM DIRECTORY */}
+        {activeMainTab === "CRM" && (
+          <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 lg:p-8 space-y-6 shadow-2xl">
+            <h2 className="text-lg font-black uppercase text-white border-b border-white/[0.06] pb-4">Customer CRM Directory</h2>
+            <div className="space-y-3">
+              {Array.from(new Set(orders.map((o) => o.phone))).map((phone) => {
+                const customerOrder = orders.find((o) => o.phone === phone);
+                return (
+                  <div key={phone} className="bg-black/60 border border-white/10 rounded-2xl p-4 flex justify-between items-center text-xs">
+                    <div>
+                      <h4 className="font-bold text-white uppercase">{customerOrder?.customerName}</h4>
+                      <p className="text-slate-400 font-mono">{phone} • {customerOrder?.email}</p>
+                    </div>
+                    <a
+                      href={`https://wa.me/233${phone.replace(/^0/, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white/10 hover:bg-white/20 text-white font-bold px-4 py-2 rounded-xl transition"
+                    >
+                      WhatsApp
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* SETTINGS */}
+        {activeMainTab === "SETTINGS" && (
+          <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 lg:p-8 space-y-6 shadow-2xl">
+            <h2 className="text-lg font-black uppercase text-white border-b border-white/[0.06] pb-4">Terminal Settings</h2>
+            <p className="text-xs text-slate-400">Database Engine: XAMPP MySQL (Port 3306)</p>
+          </div>
+        )}
       </main>
 
-      {/* EDIT PRODUCT MODAL DIALOG */}
-      {editingProduct && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#001124] border border-white/10 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center pb-2 border-b border-white/10">
-              <h3 className="text-xs font-black uppercase text-[#D4AF37]">Edit Product: {editingProduct.title}</h3>
-              <button onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+      {/* MODAL: ADD NEW PRODUCT */}
+      {isAddProductOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#001124] border border-white/10 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl my-8">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="text-sm font-black uppercase text-white">Add New Product</h3>
+              <button onClick={() => setIsAddProductOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <form action={async (fd) => {
-              const res = await updateProductDetails(editingProduct.id, {
-                title: String(fd.get("title")),
-                price: parseFloat(String(fd.get("price"))),
-                stockQuantity: parseInt(String(fd.get("stockQuantity"))),
-                category: String(fd.get("category")),
-                imageUrls: editProductImgUrl ? JSON.stringify([editProductImgUrl]) : undefined,
-              });
-              if (res.success) { alert("Product updated successfully!"); setEditingProduct(null); } else { alert(res.error); }
-            }} className="space-y-3">
+            <form onSubmit={handleCreateProduct} className="space-y-4">
               <div>
-                <label className="text-[9px] uppercase text-slate-400 font-bold">Title</label>
-                <input type="text" name="title" defaultValue={editingProduct.title} className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white" required />
+                <label className="text-[10px] font-bold uppercase text-slate-400">Product Title</label>
+                <input name="title" required type="text" placeholder="e.g. POWER BANK / Type C Fast Charger" className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Description</label>
+                <textarea name="description" rows={2} placeholder="Item specifications and details..." className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[9px] uppercase text-slate-400 font-bold">Price (GH₵)</label>
-                  <input type="number" step="0.01" name="price" defaultValue={editingProduct.price} className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white font-mono" required />
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Price (GH₵)</label>
+                  <input name="price" required type="number" step="0.01" placeholder="70.00" className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase text-slate-400 font-bold">Stock Qty</label>
-                  <input type="number" name="stockQuantity" defaultValue={editingProduct.stockQuantity} className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white font-mono" required />
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Stock Units</label>
+                  <input name="stockQuantity" required type="number" placeholder="2" className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
                 </div>
               </div>
 
               <div>
-                <label className="text-[9px] uppercase text-slate-400 font-bold">Category</label>
-                <select name="category" defaultValue={editingProduct.category} className="w-full bg-[#001a35] border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                  <option value="hardware">Phones & Devices</option>
-                  <option value="electronics">Accessories & Chargers</option>
-                  <option value="acoustics">Sound Systems</option>
-                  <option value="lighting">LED Lighting System</option>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Category</label>
+                <select name="category" className="w-full mt-1 bg-[#002147] border border-white/10 rounded-xl p-3 text-xs text-white">
+                  <option value="electronics">Electronics & Chargers</option>
                   <option value="apparel">Custom Jerseys</option>
+                  <option value="hardware">Phones & Gear</option>
                 </select>
               </div>
 
-              <CldUploader acceptType="image" label={editProductImgUrl !== editingProduct.imageUrl ? "✓ New Image Uploaded" : "Change Product Image"} onUploadSuccess={(url: string) => setEditProductImgUrl(url)} />
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Product Media</label>
+                <CldUploader
+                  acceptType="image"
+                  label="Upload Product Image"
+                  onUploadSuccess={(url) => setNewProductImgUrl(url)}
+                />
+                {newProductImgUrl && (
+                  <img src={newProductImgUrl} alt="Preview" className="mt-2 h-20 w-20 object-cover rounded-xl border border-white/10" />
+                )}
+              </div>
 
-              <button type="submit" className="w-full bg-[#D4AF37] text-[#002147] font-black text-xs uppercase py-3 rounded-xl mt-2">
-                Save Product Changes
+              <button disabled={isSubmitting} type="submit" className="w-full bg-[#D4AF37] text-[#002147] font-black text-xs uppercase py-3.5 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+                {isSubmitting ? "CREATING..." : "CREATE CATALOG ENTRY"}
               </button>
             </form>
           </div>
         </div>
       )}
 
+      {/* MODAL: EDIT PRODUCT */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#001124] border border-white/10 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl my-8">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="text-sm font-black uppercase text-white">Edit Product Item</h3>
+              <button onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateProduct} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Product Title</label>
+                <input name="title" required type="text" defaultValue={editingProduct.title} className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Description</label>
+                <textarea name="description" rows={2} defaultValue={editingProduct.description || ""} className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Price (GH₵)</label>
+                  <input name="price" required type="number" step="0.01" defaultValue={editingProduct.price} className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400">Stock Quantity</label>
+                  <input name="stockQuantity" required type="number" defaultValue={editingProduct.stockQuantity} className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Category</label>
+                <select name="category" defaultValue={editingProduct.category} className="w-full mt-1 bg-[#002147] border border-white/10 rounded-xl p-3 text-xs text-white">
+                  <option value="electronics">Electronics & Chargers</option>
+                  <option value="apparel">Custom Jerseys</option>
+                  <option value="hardware">Phones & Gear</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Update Image</label>
+                <CldUploader
+                  acceptType="image"
+                  label="Change Image"
+                  onUploadSuccess={(url) => setEditProductImgUrl(url)}
+                />
+                {(editProductImgUrl || editingProduct.imageUrl) && (
+                  <img src={editProductImgUrl || editingProduct.imageUrl} alt="Preview" className="mt-2 h-20 w-20 object-cover rounded-xl border border-white/10" />
+                )}
+              </div>
+
+              <button disabled={isSubmitting} type="submit" className="w-full bg-[#D4AF37] text-[#002147] font-black text-xs uppercase py-3.5 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+                {isSubmitting ? "SAVING..." : "SAVE PRODUCT CHANGES"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD SHOWROOM ITEM */}
+      {isAddPortfolioOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#001124] border border-white/10 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl my-8">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="text-sm font-black uppercase text-white">Add Showroom Showcase Item</h3>
+              <button onClick={() => setIsAddPortfolioOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePortfolio} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Showcase Title</label>
+                <input name="title" required type="text" placeholder="e.g. Flyer for church / Custom Laptop Skin" className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Category</label>
+                <select 
+                  name="category" 
+                  value={selectedShowroomCategory}
+                  onChange={(e) => setSelectedShowroomCategory(e.target.value)}
+                  className="w-full mt-1 bg-[#002147] border border-white/10 rounded-xl p-3 text-xs text-white"
+                >
+                  <option value="graphics">Graphic Design & Flyers</option>
+                  <option value="stickers">Laptop Skins & Decals</option>
+                  <option value="video">Video Editing & Motion</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Description</label>
+                <textarea name="description" rows={2} placeholder="Provide details about the showcase project..." className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white" />
+              </div>
+
+              <div className="space-y-3 pt-1 border-t border-white/10">
+                {selectedShowroomCategory === "graphics" && (
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Artwork / Flyer Image</label>
+                    <CldUploader
+                      acceptType="image"
+                      label="Upload Showcase Image"
+                      onUploadSuccess={(url) => setPfImgAfter(url)}
+                    />
+                    {pfImgAfter && <img src={pfImgAfter} alt="Preview" className="mt-2 h-20 w-full object-cover rounded-xl" />}
+                  </div>
+                )}
+
+                {selectedShowroomCategory === "stickers" && (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Finished Product Image (After)</label>
+                      <CldUploader
+                        acceptType="image"
+                        label="Upload After Image"
+                        onUploadSuccess={(url) => setPfImgAfter(url)}
+                      />
+                      {pfImgAfter && <img src={pfImgAfter} alt="Preview" className="mt-2 h-20 w-full object-cover rounded-xl" />}
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Original Device Image (Before)</label>
+                      <CldUploader
+                        acceptType="image"
+                        label="Upload Before Image"
+                        onUploadSuccess={(url) => setPfImgBefore(url)}
+                      />
+                      {pfImgBefore && <img src={pfImgBefore} alt="Preview" className="mt-2 h-20 w-full object-cover rounded-xl" />}
+                    </div>
+                  </>
+                )}
+
+                {selectedShowroomCategory === "video" && (
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Showcase Video Clip</label>
+                    <CldUploader
+                      acceptType="video"
+                      label="Upload Video Clip"
+                      onUploadSuccess={(url) => setPfVideoUrl(url)}
+                    />
+                    {pfVideoUrl && <p className="text-[10px] font-mono text-green-400 mt-1">✓ Video Clip Uploaded</p>}
+                  </div>
+                )}
+              </div>
+
+              <button disabled={isSubmitting} type="submit" className="w-full bg-[#D4AF37] text-[#002147] font-black text-xs uppercase py-3.5 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+                {isSubmitting ? "PUBLISHING..." : "PUBLISH TO SHOWROOM"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: VIEW SHOWROOM ITEM */}
+      {viewingPortfolio && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#001124] border border-white/10 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl relative">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <span className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37] bg-[#D4AF37]/10 px-2.5 py-1 rounded border border-[#D4AF37]/20">
+                {viewingPortfolio.category}
+              </span>
+              <button onClick={() => setViewingPortfolio(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <h3 className="text-base font-black uppercase text-white">{viewingPortfolio.title}</h3>
+
+            {viewingPortfolio.imageUrlAfter && (
+              <img src={viewingPortfolio.imageUrlAfter} alt={viewingPortfolio.title} className="w-full max-h-64 object-contain rounded-xl bg-black/40" />
+            )}
+
+            {viewingPortfolio.imageUrlBefore && (
+              <div>
+                <p className="text-[9px] font-black uppercase text-slate-500 mb-1">Before Wrap / Original Device</p>
+                <img src={viewingPortfolio.imageUrlBefore} alt="Before" className="w-full max-h-40 object-contain rounded-xl bg-black/40" />
+              </div>
+            )}
+
+            {viewingPortfolio.videoUrl && (
+              <video src={viewingPortfolio.videoUrl} controls className="w-full rounded-xl bg-black max-h-64" />
+            )}
+
+            {viewingPortfolio.description && (
+              <p className="text-xs text-slate-300 leading-relaxed bg-white/5 p-3 rounded-xl border border-white/5 whitespace-pre-line">
+                {viewingPortfolio.description}
+              </p>
+            )}
+
+            <div className="pt-2 flex justify-between items-center border-t border-white/10">
+              {viewingPortfolio.imageUrlAfter && (
+                <a
+                  href={viewingPortfolio.imageUrlAfter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Media In New Tab
+                </a>
+              )}
+              <button
+                onClick={() => setViewingPortfolio(null)}
+                className="bg-white/10 hover:bg-white/20 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT SHOWROOM ITEM */}
+      {editingPortfolio && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#001124] border border-white/10 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl my-8">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="text-sm font-black uppercase text-white">Edit Showroom Post</h3>
+              <button onClick={() => setEditingPortfolio(null)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePortfolio} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Showcase Title</label>
+                <input
+                  name="title"
+                  required
+                  type="text"
+                  defaultValue={editingPortfolio.title}
+                  className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Category</label>
+                <select
+                  name="category"
+                  defaultValue={editingPortfolio.category}
+                  className="w-full mt-1 bg-[#002147] border border-white/10 rounded-xl p-3 text-xs text-white"
+                >
+                  <option value="graphics">Graphic Design & Flyers</option>
+                  <option value="stickers">Laptop Skins & Decals</option>
+                  <option value="video">Video Editing & Motion</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Description</label>
+                <textarea
+                  name="description"
+                  rows={2}
+                  defaultValue={editingPortfolio.description || ""}
+                  className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white"
+                />
+              </div>
+
+              <div className="space-y-3 pt-1 border-t border-white/10">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Artwork / Image (After)</label>
+                  <CldUploader
+                    acceptType="image"
+                    label="Change Image"
+                    onUploadSuccess={(url) => setEditPfImgAfter(url)}
+                  />
+                  {(editPfImgAfter || editingPortfolio.imageUrlAfter) && (
+                    <img src={editPfImgAfter || editingPortfolio.imageUrlAfter} alt="Preview" className="mt-2 h-16 w-full object-cover rounded-xl" />
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">Before Image (Optional)</label>
+                  <CldUploader
+                    acceptType="image"
+                    label="Change Before Image"
+                    onUploadSuccess={(url) => setEditPfImgBefore(url)}
+                  />
+                  {(editPfImgBefore || editingPortfolio.imageUrlBefore) && (
+                    <img src={editPfImgBefore || editingPortfolio.imageUrlBefore} alt="Preview" className="mt-2 h-16 w-full object-cover rounded-xl" />
+                  )}
+                </div>
+              </div>
+
+              <button
+                disabled={isSubmitting}
+                type="submit"
+                className="w-full bg-[#D4AF37] text-[#002147] font-black text-xs uppercase py-3.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {isSubmitting ? "SAVING..." : "SAVE POST CHANGES"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
