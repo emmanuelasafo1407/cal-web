@@ -14,6 +14,8 @@ export async function POST(req: Request) {
         imageUrlBefore: imageUrlBefore || undefined,
         imageUrlAfter: imageUrlAfter || undefined,
         videoUrl: videoUrl || undefined,
+
+        imageUrl: imageUrlAfter || "/bg-evening.jpeg",
       },
     });
 
