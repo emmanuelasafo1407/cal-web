@@ -12,15 +12,18 @@ export async function POST(req: Request) {
         category: category || "graphics",
         description: description ? description.trim() : undefined,
         imageUrlBefore: imageUrlBefore || undefined,
-        imageUrlAfter: imageUrlAfter || undefined,
+        imageUrlAfter: imageUrlAfter || "/bg-evening.jpeg",
         videoUrl: videoUrl || undefined,
-
-        imageUrl: imageUrlAfter || "/bg-evening.jpeg",
       },
     });
 
     return NextResponse.json({ success: true, item }, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ error: "Failed to create showroom item." }, { status: 500 });
+    const err = error as { message?: string };
+    console.error("PORTFOLIO_CREATION_ERROR:", err);
+    return NextResponse.json(
+      { error: err?.message || "Failed to create showroom item." },
+      { status: 500 }
+    );
   }
 }
