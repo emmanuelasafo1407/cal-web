@@ -14,7 +14,7 @@ export default function HomePage() {
         <div className="max-w-7xl w-full mx-auto grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Left Hero Core Branding */}
-          <div className="lg:col-span-7 space-y-5 text-left">
+          <div className="lg:col-span-7 space-y-5 text-left animate-fade-in-up">
             <div className="inline-flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/40 px-3.5 py-1 text-xs uppercase tracking-widest text-[#D4AF37] font-black rounded-full">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               Open & Ready to Serve
@@ -28,18 +28,18 @@ export default function HomePage() {
               Mobile money, agency banking, custom jersey printing, graphic design, and quality electronic accessories. Quick, friendly, and reliable service right near you in Hohoe.
             </p>
             <div className="pt-3 flex flex-wrap gap-3 sm:gap-4">
-              <Link href="/services" className="bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] border border-[#D4AF37] hover:from-white hover:to-white text-[#002147] font-black px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl transition duration-200 uppercase text-xs tracking-wider shadow-xl">
+              <Link href="/services" className="bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] border border-[#D4AF37] hover:from-white hover:to-white text-[#002147] font-black px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl transition duration-200 uppercase text-xs tracking-wider shadow-xl btn-press">
                 Our Services
               </Link>
-              <Link href="/products" className="border-2 border-slate-400 hover:border-white text-white font-black px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl transition uppercase text-xs tracking-wider">
+              <Link href="/products" className="border-2 border-slate-400 hover:border-white text-white font-black px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl transition uppercase text-xs tracking-wider btn-press">
                 Shop Products
               </Link>
             </div>
           </div>
 
           {/* Right Hero Block: Flyer Card */}
-          <div className="lg:col-span-5 flex justify-center lg:justify-end">
-            <div className="bg-gradient-to-b from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-4 sm:p-5 rounded-2xl shadow-2xl max-w-md w-full">
+          <div className="lg:col-span-5 flex justify-center lg:justify-end animate-fade-in">
+            <div className="bg-gradient-to-b from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-4 sm:p-5 rounded-2xl shadow-2xl max-w-md w-full animate-float">
               <div className="relative aspect-[2/1] w-full overflow-hidden rounded-xl shadow-2xl border border-white/10">
                 <Image 
                   src="/flyer.jpeg" 
@@ -81,7 +81,7 @@ export default function HomePage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           
           {/* Card 1: Daytime Exterior Profile */}
-          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg hover:border-[#D4AF37]/50 transition duration-300 group">
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:border-[#D4AF37]/50 card-hover group">
             <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-slate-100">
               <Image 
                 src="/shop-day.jpeg" 
@@ -100,7 +100,7 @@ export default function HomePage() {
           </div>
 
           {/* Card 2: Interactive Counter Desks */}
-          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg hover:border-[#D4AF37]/50 transition duration-300 group">
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:border-[#D4AF37]/50 card-hover group">
             <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-slate-100">
               <Image 
                 src="/shop-interior.jpeg" 
@@ -119,7 +119,7 @@ export default function HomePage() {
           </div>
 
           {/* Card 3: Agency Banking Service Points */}
-          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg hover:border-[#D4AF37]/50 transition duration-300 group">
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:border-[#D4AF37]/50 card-hover group">
             <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-slate-100">
               <Image 
                 src="/shop-agent.jpeg" 

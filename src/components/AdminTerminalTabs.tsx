@@ -1219,7 +1219,7 @@ export default function AdminTerminalTabs({
                   name="title"
                   required
                   type="text"
-                  placeholder="e.g. Type-C Fast Charger"
+                  placeholder="Enter product title"
                   className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
@@ -1229,7 +1229,7 @@ export default function AdminTerminalTabs({
                 <textarea
                   name="description"
                   rows={2}
-                  placeholder="Details and specifications..."
+                  placeholder="Enter product description and specifications..."
                   className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
@@ -1242,7 +1242,7 @@ export default function AdminTerminalTabs({
                     required
                     type="number"
                     step="0.01"
-                    placeholder="70.00"
+                    placeholder="0.00"
                     className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -1253,7 +1253,7 @@ export default function AdminTerminalTabs({
                     required
                     type="number"
                     min="0"
-                    placeholder="10"
+                    placeholder="0"
                     className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -1416,7 +1416,7 @@ export default function AdminTerminalTabs({
                   name="title"
                   required
                   type="text"
-                  placeholder="e.g. Church Flyer / Custom Laptop Skin"
+                  placeholder="Enter title"
                   className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white"
                 />
               </div>
@@ -1440,7 +1440,7 @@ export default function AdminTerminalTabs({
                 <textarea
                   name="description"
                   rows={2}
-                  placeholder="Details about this project..."
+                  placeholder="Enter description of this project..."
                   className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white"
                 />
               </div>

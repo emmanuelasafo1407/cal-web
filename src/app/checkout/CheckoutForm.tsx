@@ -256,7 +256,7 @@ export default function CheckoutForm() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 text-[#002147]">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 text-[#002147] animate-fade-in-up">
       <div className="grid lg:grid-cols-12 gap-8 items-start">
         {/* Left Side: Order Form */}
         <div className="lg:col-span-7 bg-white border border-slate-100 shadow-xl rounded-3xl p-6 sm:p-8 space-y-6">
@@ -273,7 +273,7 @@ export default function CheckoutForm() {
           </div>
 
           {errorMessage && (
-            <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs sm:text-sm font-bold">
+            <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl text-xs sm:text-sm font-bold animate-fade-in">
               ⚠️ {errorMessage}
             </div>
           )}
@@ -287,8 +287,8 @@ export default function CheckoutForm() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Emmanuel Makafui"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37]"
+                placeholder="e.g. John Mensah"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37] transition"
                 required
               />
             </div>
@@ -301,8 +301,8 @@ export default function CheckoutForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. name@example.com"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37]"
+                placeholder="e.g. yourname@gmail.com"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37] transition"
                 required
               />
             </div>
@@ -315,14 +315,14 @@ export default function CheckoutForm() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. 0544208963"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37]"
+                placeholder="e.g. 0244123456"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37] transition"
                 required
               />
             </div>
 
             {isLocationRequired && (
-              <div>
+              <div className="animate-fade-in">
                 <label className="block text-[11px] font-bold uppercase tracking-wider mb-1.5 text-[#002147]">
                   Delivery Address / Landmark
                 </label>
@@ -330,8 +330,8 @@ export default function CheckoutForm() {
                   type="text"
                   value={deliveryLocation}
                   onChange={(e) => setDeliveryLocation(e.target.value)}
-                  placeholder="e.g. Off Likpe Road, Bungalow - Hohoe"
-                  className="w-full bg-amber-50/50 border border-[#D4AF37]/40 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="e.g. Near Market, Hohoe"
+                  className="w-full bg-amber-50/50 border border-[#D4AF37]/40 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#D4AF37] transition"
                   required
                 />
               </div>

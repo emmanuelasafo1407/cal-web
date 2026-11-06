@@ -78,7 +78,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-8 bg-black/40 border border-white/[0.06] rounded-3xl p-6 lg:p-8 backdrop-blur-2xl">
+    <div className="grid md:grid-cols-2 gap-8 bg-black/40 border border-white/[0.06] rounded-3xl p-6 lg:p-8 backdrop-blur-2xl animate-fade-in-up">
       {/* IMAGE CONTAINER */}
       <div className="relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-black/60">
         <img
@@ -149,8 +149,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="e.g. Real Madrid, Arsenal, Ghana Black Stars"
-                  className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="e.g. Real Madrid, Arsenal, Ghana"
+                  className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37] transition"
                 />
               </div>
 
@@ -161,8 +161,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                     type="text"
                     value={season}
                     onChange={(e) => setSeason(e.target.value)}
-                    placeholder="e.g. 2026/2027 or Retro"
-                    className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    placeholder="e.g. 2025/2026 or Retro"
+                    className="w-full mt-1 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37] transition"
                   />
                 </div>
 
@@ -228,15 +228,15 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 </div>
 
                 {wantsCustomization && (
-                  <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="grid grid-cols-2 gap-3 pt-2 animate-fade-in">
                     <div>
                       <label className="text-[9px] uppercase font-bold text-slate-400">Name to Print</label>
                       <input
                         type="text"
                         value={customName}
                         onChange={(e) => setCustomName(e.target.value)}
-                        placeholder="e.g. MAKAFUI"
-                        className="w-full mt-1 bg-black/40 border border-[#D4AF37]/50 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                        placeholder="e.g. KWAME"
+                        className="w-full mt-1 bg-black/40 border border-[#D4AF37]/50 rounded-xl p-2.5 text-xs text-white focus:outline-none transition"
                       />
                     </div>
                     <div>
@@ -245,8 +245,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                         type="text"
                         value={customNumber}
                         onChange={(e) => setCustomNumber(e.target.value)}
-                        placeholder="e.g. 10"
-                        className="w-full mt-1 bg-black/40 border border-[#D4AF37]/50 rounded-xl p-2.5 text-xs text-white focus:outline-none font-mono"
+                        placeholder="e.g. 7"
+                        className="w-full mt-1 bg-black/40 border border-[#D4AF37]/50 rounded-xl p-2.5 text-xs text-white focus:outline-none font-mono transition"
                       />
                     </div>
                   </div>

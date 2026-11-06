@@ -134,7 +134,7 @@ export default function ProductOrderForm({ product }: ProductOrderFormProps) {
                   type="text" 
                   value={printName}
                   onChange={(e) => setPrintName(e.target.value)}
-                  placeholder="e.g. AKPORNORSOR" 
+                  placeholder="e.g. KWAME" 
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:border-[#D4AF37] transition text-[#002147]"
                 />
               </div>
