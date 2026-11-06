@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/store/useCart";
-import { ShoppingBag, PhoneCall, Menu, X } from "lucide-react";
+import { ShoppingBag, PhoneCall, Menu, X, Shield } from "lucide-react";
 
 export default function NavBar() {
   const items = useCart((state) => state.items);
@@ -21,7 +21,7 @@ export default function NavBar() {
     <header className="sticky top-0 z-50 w-full bg-[#002147] border-b border-[#D4AF37]/30 shadow-2xl px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
-        {/* Left Side: Brand Logo Core Identity */}
+        {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2 group shrink-0">
           <div className="border-2 border-[#D4AF37] bg-[#001530] px-2.5 py-0.5 rounded font-serif text-sm text-[#D4AF37]">
             CAL
@@ -36,7 +36,7 @@ export default function NavBar() {
           </div>
         </Link>
 
-        {/* Right Side Control Wrapper */}
+        {/* Right Side Controls */}
         <div className="flex items-center gap-2 bg-white/[0.04] backdrop-blur-xl border border-white/10 p-1.5 rounded-xl">
           
           {/* Desktop Links */}
@@ -59,16 +59,16 @@ export default function NavBar() {
             className="flex items-center gap-1.5 bg-white/10 border border-white/10 text-white font-bold text-[10px] uppercase tracking-wider px-2.5 py-1.5 rounded-lg hover:bg-white hover:text-[#002147] transition duration-200"
           >
             <PhoneCall className="w-3 h-3 text-[#D4AF37]" />
-            <span className="hidden sm:inline">Contact</span>
+            <span className="hidden sm:inline">WhatsApp</span>
           </a>
 
-          {/* Cart Capsule */}
+          {/* Cart Button */}
           <Link
             href="/checkout"
             className="relative flex items-center gap-1.5 bg-gradient-to-r from-[#D4AF37] to-[#F3CD59] text-[#002147] font-black text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-lg hover:shadow-[#D4AF37]/20 transition duration-200"
           >
-            <ShoppingBag className="w-3 h-3 stroke-[2.5]" />
-            <span className="bg-[#002147]/10 w-4 h-4 rounded-full flex items-center justify-center font-mono text-[10px]">
+            <ShoppingBag className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span className="bg-[#002147]/15 w-4 h-4 rounded-full flex items-center justify-center font-mono text-[10px]">
               {totalQuantity}
             </span>
           </Link>
@@ -78,26 +78,34 @@ export default function NavBar() {
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-1.5 text-white hover:text-[#D4AF37] transition"
+            aria-label="Toggle Navigation Menu"
           >
-            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
       {/* Slide-down Mobile Menu Panel Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden mt-3 pt-3 border-t border-white/10 text-center">
-          <nav className="flex flex-col gap-3 font-black text-[11px] uppercase tracking-widest text-white pb-2">
+        <div className="md:hidden mt-3 pt-3 border-t border-white/10 text-center space-y-2">
+          <nav className="flex flex-col gap-1 font-black text-xs uppercase tracking-wider text-white">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 hover:bg-white/[0.05] rounded-xl hover:text-[#D4AF37] transition"
+                className="py-2.5 px-4 hover:bg-white/[0.08] rounded-xl hover:text-[#D4AF37] transition"
               >
                 {link.name}
               </Link>
             ))}
+            <Link
+              href="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-4 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition flex items-center justify-center gap-1.5 text-[11px]"
+            >
+              <Shield className="w-3.5 h-3.5 text-[#D4AF37]" /> Admin Portal
+            </Link>
           </nav>
         </div>
       )}

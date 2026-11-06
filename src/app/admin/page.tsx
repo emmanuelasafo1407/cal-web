@@ -13,13 +13,15 @@ export default async function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-[85vh] flex items-center justify-center px-4 text-white bg-[#001124]">
-        <div className="w-full max-w-md bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-8 space-y-6 shadow-2xl">
+        <div className="w-full max-w-md bg-black/40 backdrop-blur-3xl border border-white/[0.06] rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
           <div className="flex flex-col items-center text-center space-y-2">
             <div className="p-4 bg-[#D4AF37]/10 rounded-2xl text-[#D4AF37] border border-[#D4AF37]/20">
               <Lock className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight">Terminal Gate Guard</h2>
-            <p className="text-xs text-slate-400 max-w-xs">Enter system security tokens to open administrative control feeds.</p>
+            <h2 className="text-xl font-black uppercase tracking-tight">Admin Login</h2>
+            <p className="text-xs text-slate-400 max-w-xs">
+              Enter your admin credentials to access the store dashboard.
+            </p>
           </div>
 
           <AdminLoginForm />
@@ -28,7 +30,7 @@ export default async function AdminPage() {
     );
   }
 
-  // Fetch orders, orderItems with product relations, products, and portfolio
+  // Fetch orders, order items with product relations, products, and portfolio items
   const [baseOrders, orderItemsFeed, allProducts, allPortfolio] = await Promise.all([
     db.order.findMany({
       orderBy: { createdAt: "desc" },
@@ -51,12 +53,16 @@ export default async function AdminPage() {
 
     return {
       id: order.id,
-      customerName: order.customerName || "Anonymous Customer",
-      email: order.email || "No Email Provided",
-      phone: order.phone || "No Phone Number",
-      paymentMethod: order.paymentMethod || "momo",
+      customerName: order.customerName || "Customer",
+      email: order.email || "No email",
+      phone: order.phone || "No phone",
+      paymentMethod: order.paymentMethod || "PAY_ON_DELIVERY",
+      paymentReference: order.paymentReference || null,
+      paymentStatus: order.paymentStatus || "PENDING",
+      status: order.status || "PENDING",
       totalAmount: Number(order.totalAmount || 0),
-      deliveryAddress: order.deliveryAddress || "Location Unspecified",
+      deliveryAddress: order.deliveryAddress || "Not specified",
+      createdAt: order.createdAt.toISOString(),
       items: matchedItems.map((it) => {
         let parsedImage = "/shop-day.jpeg";
         if (it.product?.imageUrls) {
@@ -80,7 +86,7 @@ export default async function AdminPage() {
 
         return {
           id: it.id,
-          title: it.product?.title || "Custom Order Item",
+          title: it.product?.title || "Store Item",
           price: Number(it.price || 0),
           quantity: it.quantity || 1,
           imageUrl: parsedImage,
@@ -124,15 +130,19 @@ export default async function AdminPage() {
   }));
 
   return (
-    <div className="p-6 lg:p-12 bg-[#001124] min-h-screen text-white">
-      <header className="mb-8 border-b border-white/[0.06] pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="p-4 sm:p-6 lg:p-10 bg-[#001124] min-h-screen text-white">
+      <header className="mb-6 border-b border-white/[0.06] pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#D4AF37]">Internal Node Entry</p>
-          <h1 className="text-2xl font-black uppercase tracking-tight mt-0.5">Management Terminal Console</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D4AF37]">
+            Management Portal
+          </p>
+          <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight mt-0.5">
+            Store Admin Dashboard
+          </h1>
         </div>
-        <div className="flex items-center gap-2 bg-green-500/10 text-green-400 border border-green-500/20 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
+        <div className="flex items-center gap-2 bg-green-500/10 text-green-400 border border-green-500/20 px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          Database Sync: Live (XAMPP 3306)
+          Database Connected
         </div>
       </header>
 

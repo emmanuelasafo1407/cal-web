@@ -44,13 +44,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#001124] text-[#ffffff] p-6 lg:p-12">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#001124] text-white p-4 sm:p-6 lg:p-12">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
         <Link 
           href="/products" 
           className="inline-flex items-center gap-2 text-xs font-black uppercase text-[#D4AF37] hover:underline"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Store Catalog
+          <ArrowLeft className="w-4 h-4" /> Back to Products
         </Link>
 
         <ProductDetailClient product={formattedProduct} />

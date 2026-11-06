@@ -40,7 +40,7 @@ export async function uploadProduct(formData: FormData) {
     revalidatePath("/admin");
     return { success: true };
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Failed to post item.";
+    const msg = error instanceof Error ? error.message : "Failed to add product.";
     return { success: false, error: msg };
   }
 }
@@ -69,7 +69,7 @@ export async function uploadPortfolioItem(formData: FormData) {
     revalidatePath("/admin");
     return { success: true };
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Failed to populate showroom.";
+    const msg = error instanceof Error ? error.message : "Failed to add showroom item.";
     return { success: false, error: msg };
   }
 }
@@ -80,7 +80,7 @@ export async function clearProcessedOrder(id: string) {
     revalidatePath("/admin");
     return { success: true };
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Failed to clear order.";
+    const msg = error instanceof Error ? error.message : "Failed to delete order.";
     return { success: false, error: msg };
   }
 }
@@ -110,7 +110,7 @@ export async function updateProductDetails(
   }
 }
 
-// TOGGLE STOCK AVAILABILITY INSTANTLY (0 vs 10)
+// TOGGLE STOCK AVAILABILITY (0 vs 10)
 export async function toggleStockStatus(id: string, currentQty: number) {
   try {
     const newQty = currentQty > 0 ? 0 : 10;
@@ -148,22 +148,37 @@ export async function deletePortfolioItem(id: string) {
     revalidatePath("/portfolio");
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to delete portfolio item";
+    const message = err instanceof Error ? err.message : "Failed to delete showroom item";
     return { success: false, error: message };
   }
 }
-// UPDATE ORDER STATUS WORKFLOW (Received -> In Assembly -> Dispatched)
+
+// UPDATE ORDER STATUS (PENDING -> PROCESSING -> COMPLETED -> CANCELLED)
 export async function updateOrderStatus(orderId: string, status: string) {
   try {
-    // Stored in metadata or deliveryAddress string prefix if schema is locked
     await db.order.update({
       where: { id: orderId },
-      data: { deliveryAddress: `[STATUS:${status}] ` + (await db.order.findUnique({ where: { id: orderId } }))?.deliveryAddress.replace(/\[STATUS:.*?\]\s*/, "") },
+      data: { status },
     });
     revalidatePath("/admin");
     return { success: true };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to update status";
+    const msg = err instanceof Error ? err.message : "Failed to update order status";
+    return { success: false, error: msg };
+  }
+}
+
+// UPDATE PAYMENT STATUS (PENDING -> PAID)
+export async function updateOrderPaymentStatus(orderId: string, paymentStatus: string) {
+  try {
+    await db.order.update({
+      where: { id: orderId },
+      data: { paymentStatus },
+    });
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to update payment status";
     return { success: false, error: msg };
   }
 }

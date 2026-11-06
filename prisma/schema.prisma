@@ -88,16 +88,18 @@ model PortfolioItem {
 }
 
 model Order {
-  id              String      @id @default(uuid())
-  customerName    String
-  email           String
-  phone           String
-  paymentMethod   String      // "online" or "delivery"
-  totalAmount     Float
-  deliveryAddress String
-  items           OrderItem[]
-  status          String      @default("PENDING")
-  createdAt       DateTime    @default(now())
+  id               String      @id @default(uuid())
+  customerName     String
+  email            String
+  phone            String
+  paymentMethod    String      // "online" or "delivery"
+  paymentReference String?     @map("payment_reference")
+  paymentStatus    String      @default("PENDING") @map("payment_status")
+  totalAmount      Float
+  deliveryAddress  String
+  items            OrderItem[]
+  status           String      @default("PENDING")
+  createdAt        DateTime    @default(now())
 }
 
 model OrderItem {
